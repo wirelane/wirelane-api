@@ -254,36 +254,72 @@ definitions:
         example: false
       monday:
         type: array
-        description: Start and end time pairs reperesenting availability on Mondays.
+        description: Start and end time pairs representing availability on Mondays.
         example: [["0900","1230"],["1330","0000"]]
+        default: []
+        items:
+          type: array
+          items:
+            type: string
       tuesday:
         type: array
-        description: Start and end time pairs reperesenting availability on Tuesdays.
+        description: Start and end time pairs representing availability on Tuesdays.
         example: [["0000","0000"]]
+        default: []
+        items:
+          type: array
+          items:
+            type: string
       wednesday:
         type: array
-        description: Start and end time pairs reperesenting availability on Wednesdays.
+        description: Start and end time pairs representing availability on Wednesdays.
         example: [["0900","1230"],["1330","0000"]]
+        default: []
+        items:
+          type: array
+          items:
+            type: string
       thursday:
         type: array
-        description: Start and end time pairs reperesenting availability on Thursdays.
+        description: Start and end time pairs representing availability on Thursdays.
         example: [["0000","0000"]]
+        default: []
+        items:
+          type: array
+          items:
+            type: string
       friday:
         type: array
-        description: Start and end time pairs reperesenting availability on Fridays.
+        description: Start and end time pairs representing availability on Fridays.
         example: [["0900","1230"],["1330","1645"],["1800","0000"]]
+        default: []
+        items:
+          type: array
+          items:
+            type: string
       saturday:
         type: array
-        description: Start and end time pairs reperesenting availability on Saturdays.
+        description: Start and end time pairs representing availability on Saturdays.
         example: [["0000","0000"]]
+        default: []
+        items:
+          type: array
+          items:
+            type: string
       sunday:
         type: array
-        description: Start and end time pairs reperesenting availability on Sundays.
+        description: Start and end time pairs representing availability on Sundays.
         example: []
+        default: []
+        items:
+          type: array
+          items:
+            type: string
       exceptionalOpenings:
-        type: array
-        description: Start and end time pairs reperesenting availability on specific dates. Dates in Y-m-d format. * can be used as year, month or day wildcards to represent recurring dates.
+        type: object
+        description: Start and end time pairs representing availability on specific dates. Dates in Y-m-d format. * can be used as year, month or day wildcards to represent recurring dates.
         example: {"2020-12-24":[["0000","0900"],["0930","1300"]],"*-12-25":[],"*-12-26":[]}
+        default: []
   HttpError:
     properties:
       error_code:
