@@ -63,6 +63,10 @@ info:
     url: https://www.wirelane.com
     email: support@wirelane.com
   version: "2.0"
+  x-logo:
+    url: "https://avatars.githubusercontent.com/u/32132867?s=200&amp;v=4"
+    backgroundColor: "#000"
+    altText: "Wirelane"
 servers:
 - url: https://api-staging.wirelane.com/apis/emc
 security:
