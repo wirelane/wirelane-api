@@ -935,7 +935,7 @@ components:
           type: object
           description: Availability of charging point
           allOf:
-          - $ref: '#/definitions/OpeningHours'
+          - $ref: '#/components/schemas/OpeningHours'
         timezone:
           type: string
           description: Timezone of charging point.
