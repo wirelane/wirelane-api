@@ -14,7 +14,7 @@ jobs:
       - name: Generate doc
         uses: seeebiii/redoc-cli-github-action@v10
         with:
-          args: 'bundle openapi.yml -o dist/index.html'
+          args: 'bundle openapi.yml -o dist/index.html --options.disableSearch --options.requiredPropsFirst --options.sortPropsAlphabetically'
 
       - name: Deploy
         uses: peaceiris/actions-gh-pages@v3
