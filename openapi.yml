@@ -884,12 +884,14 @@ components:
           example:
           - card
           - remote
+          - nfc_terminal
           - direct
           items:
             type: string
             enum:
             - card
             - remote
+            - nfc_terminal
             - direct
         status:
           type: string
