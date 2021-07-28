@@ -87,6 +87,12 @@ securityDefinitions:
     tokenUrl: https://oauth-staging.emobilitycloud.com/token
     scopes:
       account: Account function
+tags:
+- name: models
+  x-displayName: Models
+  description: |
+    ## ChargingPoint
+    <SchemaDefinition schemaRef="#/definitions/ChargingPoint" />
 paths:
   /organizations/id/{organizationId}/points:
     post:
