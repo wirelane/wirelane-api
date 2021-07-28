@@ -65,7 +65,7 @@ info:
   version: "2.0"
   x-logo:
     url: "https://avatars.githubusercontent.com/u/32132867?s=200&amp;v=4"
-    backgroundColor: "#000"
+    backgroundColor: "#151515"
     altText: "Wirelane"
 servers:
 - url: https://api-staging.wirelane.com/apis/emc
