@@ -16,7 +16,7 @@ info:
     Content-Type: application/x-www-form-urlencoded
     Accept: application/json
 
-    grant_type=password&client_id=...&client_secret=...&username=...&password=...&scope=account_admin
+    grant_type=password&client_id=...&client_secret=...&username=...&password=...
     ```
     Retrieving a JWT access token on production:
     ```
@@ -24,7 +24,7 @@ info:
     Content-Type: application/x-www-form-urlencoded
     Accept: application/json
 
-    grant_type=password&client_id=...&client_secret=...&username=...&password=...&scope=account_admin
+    grant_type=password&client_id=...&client_secret=...&username=...&password=...
     ```
     From the returned JSON, take the value of `access_token` and use it in the API request as follows:
     ```
@@ -41,7 +41,7 @@ info:
     Content-Type: application/x-www-form-urlencoded
     Accept: application/json
 
-    client_id=...&client_secret=...&grant_type=client_credentials&scope=account
+    grant_type=client_credentials&client_id=...&client_secret=...&scope=account
     ```
     Retrieving a JWT access token on production:
     ```
@@ -49,7 +49,7 @@ info:
     Content-Type: application/x-www-form-urlencoded
     Accept: application/json
 
-    client_id=...&client_secret=...&grant_type=client_credentials&scope=account
+    grant_type=client_credentials&client_id=...&client_secret=...&scope=account
     ```
     From the returned JSON, take the value of `access_token` and use it in the API request.
 
