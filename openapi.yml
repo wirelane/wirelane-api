@@ -72,12 +72,6 @@ servers:
 security:
 - OAuth2Password:
   - account_admin
-tags:
-- name: models
-  description: |
-    ## ChargingPoint
-    <SchemaDefinition schemaRef="#/components/schemas/ChargingPoint" />
-  x-displayName: Models
 paths:
   /organizations/id/{organizationId}/points:
     get:
@@ -88,33 +82,10 @@ paths:
         Finding charging points for the account.
       operationId: organizationFindChargingPoints
       parameters:
-      - name: organizationId
-        in: path
-        description: Organization ID
-        required: true
-        schema:
-          pattern: ^[a-zA-Z0-9-_]+$
-          type: string
-      - name: page
-        in: query
-        description: Number of current page
-        schema:
-          pattern: ^[0-9]*$
-          type: string
-          default: "1"
-      - name: page_size
-        in: query
-        description: Number of items per page
-        schema:
-          pattern: ^[0-9]*$
-          type: string
-          default: "50"
-      - name: search
-        in: query
-        description: Context search string
-        schema:
-          pattern: ^[a-zA-ZÀ-ÿ0-9-_*.,\x27\x20]+$
-          type: string
+      - $ref: '#/components/parameters/organizationIdParam'
+      - $ref: '#/components/parameters/pageNumberParam'
+      - $ref: '#/components/parameters/itemsPerPageParam'
+      - $ref: '#/components/parameters/searchStringParam'
       - name: order_by
         in: query
         description: Name for sort
@@ -135,15 +106,7 @@ paths:
           - creationDate
           - updateDate
           - distance
-      - name: order_direction
-        in: query
-        description: Key for order direction
-        schema:
-          type: string
-          enum:
-          - asc
-          - desc
-          - ""
+      - $ref: '#/components/parameters/orderDirectionParam'
       - name: lat
         in: query
         description: Latitude
@@ -376,13 +339,7 @@ paths:
       description: Create a charging point for the provider of the organization.
       operationId: organizationCreateChargingPoint
       parameters:
-      - name: organizationId
-        in: path
-        description: Organization ID
-        required: true
-        schema:
-          pattern: ^[a-zA-Z0-9-_]+$
-          type: string
+      - $ref: '#/components/parameters/organizationIdParam'
       requestBody:
         description: Create a charging point
         content:
@@ -407,7 +364,6 @@ paths:
           $ref: '#/components/responses/404'
         500:
           $ref: '#/components/responses/500'
-      x-codegen-request-body-name: charging_point
   /organizations/id/{organizationId}/points/{pointTypeId}/{pointId}:
     get:
       tags:
@@ -417,13 +373,7 @@ paths:
         Get a single charging point by their charging point evseId
       operationId: organizationFindChargingPoint
       parameters:
-      - name: organizationId
-        in: path
-        description: Organization ID
-        required: true
-        schema:
-          pattern: ^[a-zA-Z0-9-_]+$
-          type: string
+      - $ref: '#/components/parameters/organizationIdParam'
       - name: pointTypeId
         in: path
         description: |
@@ -474,13 +424,7 @@ paths:
       description: Update a charging point for the provider of the organization.
       operationId: organizationUpdateChargingPoint
       parameters:
-      - name: organizationId
-        in: path
-        description: Organization ID
-        required: true
-        schema:
-          pattern: ^[a-zA-Z0-9-_]+$
-          type: string
+      - $ref: '#/components/parameters/organizationIdParam'
       - name: pointTypeId
         in: path
         description: |
@@ -530,7 +474,6 @@ paths:
           $ref: '#/components/responses/404'
         500:
           $ref: '#/components/responses/500'
-      x-codegen-request-body-name: charging_point
   /organizations/id/{organizationId}/sessions:
     get:
       tags:
@@ -565,6 +508,34 @@ paths:
           headers:
             X-Total-Count:
               $ref: '#/components/headers/X-Total-Count'
+        400:
+          $ref: '#/components/responses/400'
+        401:
+          $ref: '#/components/responses/401'
+        403:
+          $ref: '#/components/responses/403'
+        404:
+          $ref: '#/components/responses/404'
+        500:
+          $ref: '#/components/responses/500'
+  /organizations/id/{organizationId}/sessions/id/{sessionId}:
+    get:
+      tags:
+        - Organizations Sessions
+      summary: Get one session from organization
+      description: |
+        Get a single charging session conducted on the organization infrastructure
+      operationId: findOrganizationChargingSession
+      parameters:
+        - $ref: '#/components/parameters/organizationIdParam'
+        - $ref: '#/components/parameters/sessionIdParam'
+      responses:
+        200:
+          description: Return specific charging session
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ChargingSession'
         400:
           $ref: '#/components/responses/400'
         401:
@@ -1632,6 +1603,14 @@ components:
         type: array
         items:
           type: string
+    sessionIdParam:
+      name: sessionId
+      in: path
+      description: The ID to search for
+      required: true
+      schema:
+        type: string
+        pattern: '^[a-zA-Z0-9-_]+$'
   headers:
     X-Total-Count:
       description: Total number of items
