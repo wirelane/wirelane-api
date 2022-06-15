@@ -1192,6 +1192,7 @@ components:
       schema:
         pattern: ^[a-zA-Z0-9-_]+$
         type: string
+        example: DEMOTENANT
     latParam:
       name: lat
       in: query
