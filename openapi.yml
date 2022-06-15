@@ -189,13 +189,13 @@ paths:
       - name: plug_types
         in: query
         description: |
-          The plug types. (Comma Separated List)
+          The plug types.
             * TYPE_1
-            * TYPE_1_ATCH : With cable attached
+            * TYPE_1_ATCH: With cable attached
             * TYPE_2
-            * TYPE_2_ATCH : With cable attached
+            * TYPE_2_ATCH: With cable attached
             * TYPE_3
-            * TYPE_3_ATCH : With cable attached
+            * TYPE_3_ATCH: With cable attached
             * CHADEMO
             * CCS
             * SCHUKO
@@ -221,14 +221,14 @@ paths:
       - name: status
         in: query
         description: |
-          Status of the points. If one point in the station hits the requested status the entire station is returned.  (Comma Separated List)
-            * FREE : Point is free.
-            * IN_USE :  Point is used by a card (might also be reserved).
-            * UNAVAILABLE : Point is unavailable right now. Might not be installed or broken.
-            * UNKNOWN : The point status is unknonwn.
-            * FAULTED : Point is faulted or temporary faulted.
-            * RESERVED : The point is reserved.
-            * CLOSED : The point status is closed (the point is not in use anymore).
+          Status of the points. If one point in the station hits the requested status the entire station is returned.
+            * FREE: Point is free.
+            * IN_USE: Point is used by a card (might also be reserved).
+            * UNAVAILABLE: Point is unavailable right now. Might not be installed or broken.
+            * UNKNOWN: The point status is unknonwn.
+            * FAULTED: Point is faulted or temporary faulted.
+            * RESERVED: The point is reserved.
+            * CLOSED: The point status is closed (the point is not in use anymore).
         style: form
         explode: false
         schema:
@@ -238,7 +238,7 @@ paths:
       - name: charging_type
         in: query
         description: |
-          The charging type. (Comma Separated List)
+          The charging type.
             * AC
             * DC
         style: form
@@ -254,7 +254,7 @@ paths:
       - name: auth_type
         in: query
         description: |
-          The charging station authorization type. (Comma Separated List)
+          The charging station authorization type.
             * card
             * remote
             * direct
@@ -350,13 +350,9 @@ paths:
           description: List of found charging points
           headers:
             X-Total-Count:
-              description: Total number of items
-              schema:
-                type: integer
+              $ref: '#/components/headers/X-Total-Count'
             X-Total-Pages:
-              description: Total number of pages
-              schema:
-                type: integer
+              $ref: '#/components/headers/X-Total-Pages'
           content:
             application/json:
               schema:
@@ -364,62 +360,15 @@ paths:
                 items:
                   $ref: '#/components/schemas/ChargingPoint'
         400:
-          description: Bad Request - Request is somehow wrong
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/HttpError'
+          $ref: '#/components/responses/400'
         401:
-          description: User not authorized
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/HttpError'
+          $ref: '#/components/responses/401'
         403:
-          description: Forbidden - The API token is not authorized to perform this
-            request
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/HttpError'
+          $ref: '#/components/responses/403'
         404:
-          description: Not Found - The resource could not be found
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/HttpError'
-        406:
-          description: Not Acceptable - The format is not supported
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/HttpError'
-        429:
-          description: Too Many Requests - API usage exceeded
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/HttpError'
+          $ref: '#/components/responses/404'
         500:
-          description: Internal Server Error - Problem with the server. Try again
-            later or report it.
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/HttpError'
-        503:
-          description: Service Unavailable - Temporarily offline for maintenance.
-            Please try again later.
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/HttpError'
-        default:
-          description: Default response object error
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/HttpError'
+          $ref: '#/components/responses/500'
     post:
       tags:
       - Organizations Charge Points
@@ -449,30 +398,15 @@ paths:
               schema:
                 $ref: '#/components/schemas/ChargingPoint'
         400:
-          description: Bad Request - Request is somehow wrong
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/HttpError'
+          $ref: '#/components/responses/400'
         401:
-          description: User not authorized
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/HttpError'
+          $ref: '#/components/responses/401'
+        403:
+          $ref: '#/components/responses/403'
         404:
-          description: Not Found - The resource could not be found
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/HttpError'
+          $ref: '#/components/responses/404'
         500:
-          description: Internal Server Error - Problem with the server. Try again
-            later or report it.
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/HttpError'
+          $ref: '#/components/responses/500'
       x-codegen-request-body-name: charging_point
   /organizations/id/{organizationId}/points/{pointTypeId}/{pointId}:
     get:
@@ -524,62 +458,15 @@ paths:
               schema:
                 $ref: '#/components/schemas/ChargingPoint'
         400:
-          description: Bad Request - Request is somehow wrong
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/HttpError'
+          $ref: '#/components/responses/400'
         401:
-          description: User not authorized
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/HttpError'
+          $ref: '#/components/responses/401'
         403:
-          description: Forbidden - The API token is not authorized to perform this
-            request
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/HttpError'
+          $ref: '#/components/responses/403'
         404:
-          description: Not Found - The resource could not be found
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/HttpError'
-        406:
-          description: Not Acceptable - The format is not supported
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/HttpError'
-        429:
-          description: Too Many Requests - API usage exceeded
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/HttpError'
+          $ref: '#/components/responses/404'
         500:
-          description: Internal Server Error - Problem with the server. Try again
-            later or report it.
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/HttpError'
-        503:
-          description: Service Unavailable - Temporarily offline for maintenance.
-            Please try again later.
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/HttpError'
-        default:
-          description: Default response object error
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/HttpError'
+          $ref: '#/components/responses/500'
     put:
       tags:
       - Organizations Charge Points
@@ -634,31 +521,60 @@ paths:
               schema:
                 $ref: '#/components/schemas/ChargingPoint'
         400:
-          description: Bad Request - Request is somehow wrong
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/HttpError'
+          $ref: '#/components/responses/400'
         401:
-          description: User not authorized
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/HttpError'
+          $ref: '#/components/responses/401'
+        403:
+          $ref: '#/components/responses/403'
         404:
-          description: Not Found - The resource could not be found
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/HttpError'
+          $ref: '#/components/responses/404'
         500:
-          description: Internal Server Error - Problem with the server. Try again
-            later or report it.
+          $ref: '#/components/responses/500'
+      x-codegen-request-body-name: charging_point
+  /organizations/id/{organizationId}/sessions:
+    get:
+      tags:
+        - Organizations Sessions
+      summary: Get charging sessions of the organization
+      description: |
+        Get charging sessions conducted on the organization infrastructure
+      operationId: findOrganizationChargingSessions
+      parameters:
+        - $ref: '#/components/parameters/organizationIdParam'
+        - $ref: '#/components/parameters/pageNumberParam'
+        - $ref: '#/components/parameters/itemsPerPageParam'
+        - $ref: '#/components/parameters/searchStringParam'
+        - $ref: '#/components/parameters/chargingPointIdParam'
+        - $ref: '#/components/parameters/chargingSessionStatusParam'
+        - $ref: '#/components/parameters/datePickerSinceParam'
+        - $ref: '#/components/parameters/datePickerUntilParam'
+        - $ref: '#/components/parameters/sessionOrderByParam'
+        - $ref: '#/components/parameters/orderDirectionParam'
+        - $ref: '#/components/parameters/organizationTypeParam'
+        - $ref: '#/components/parameters/chargePointIdListParam'
+        - $ref: '#/components/parameters/ownerIdListParam'
+      responses:
+        200:
+          description: Returns charging sessions of the organization.
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/HttpError'
-      x-codegen-request-body-name: charging_point
+                type: array
+                items:
+                  $ref: '#/components/schemas/ChargingSession'
+          headers:
+            X-Total-Count:
+              $ref: '#/components/headers/X-Total-Count'
+        400:
+          $ref: '#/components/responses/400'
+        401:
+          $ref: '#/components/responses/401'
+        403:
+          $ref: '#/components/responses/403'
+        404:
+          $ref: '#/components/responses/404'
+        500:
+          $ref: '#/components/responses/500'
 components:
   schemas:
     OpeningHours:
@@ -688,8 +604,8 @@ components:
           type: array
           description: Start and end time pairs representing availability on Tuesdays.
           example:
-          - - "0000"
-            - "0000"
+            - - "0000"
+              - "0000"
           items:
             type: array
             items:
@@ -788,9 +704,9 @@ components:
           type: string
           example: WIRELANE-2500781
     ChargingPoint:
+      type: object
       required:
       - charge_point_id
-      type: object
       properties:
         id:
           type: string
@@ -989,6 +905,256 @@ components:
           type: array
           items:
             $ref: '#/components/schemas/ChargingPointGroup'
+    ChargingSession:
+      type: object
+      required:
+      - customer_id
+      - owner
+      - emp
+      - session_id
+      - cpo_session_id
+      - charging_point_id
+      properties:
+        session_id:
+          type: string
+          description: Internal session id
+        cpo_session_id:
+          type: string
+          description: Charging session id of the CPO
+          example: 19eea288-1ee1-5aa9-b258-38fea1df55f3
+        customer_id:
+          type: string
+          example: WIRELANE-7900915
+        customer_email:
+          type: string
+          format: email
+          example: customer@example.com
+        customer_membership_owner:
+          type: string
+          example: wirelane
+        card_number:
+          type: string
+          example: WIRELANE123456
+        card_short_reference:
+          type: string
+          example: CarXYZ
+        language:
+          description: '[ISO 639-1](https://en.wikipedia.org/wiki/List_of_ISO_639-1_codes) language code.'
+          type: string
+          example: de
+        charging_station_id:
+          type: string
+          example: 98fd4f3a554f33c12eca9b5e2e4b369a
+        charging_point_id:
+          type: string
+          example: 00eb08a9b45c69a4f9f14982a0095e12
+        charge_point_id:
+          type: string
+          example: DESGDE000801-2
+        evseid:
+          type: string
+          example: DESGDE000801
+        owner:
+          description: Charging point owner
+          type: string
+          example: WIRELANE-2500781
+        emp:
+          description: E-Mobility Service Provider
+          type: string
+          example: desgd
+        cpo:
+          description: Charging point operator
+          type: string
+          example: eclearing
+        charging_provider:
+          description: Charging point provider
+          type: string
+          example: wirelane
+        plug_type:
+          type: string
+          example: TYPE_2
+        charging_type:
+          type: string
+          enum:
+          - AC
+          - DC
+        country:
+          type: string
+          description: '[ISO 3166-1 alpha-2](https://en.wikipedia.org/wiki/ISO_3166-1_alpha-2) country code.'
+          example: DE
+        city:
+          type: string
+          example: Schwäbisch Gmünd
+        zip_code:
+          type: string
+          example: 73525
+        street:
+          type: string
+          example: Honiggasse
+        house_number:
+          type: string
+          example: 21
+        tariff:
+          type: string
+          description: The tariff name for the charging session
+          example: LADEPAY_01
+        tariff_text:
+          type: string
+          description: The description text for the tariff
+        price_model:
+          type: string
+          description: The price model key for the charging session
+          example: desgd_ladepay_01
+        price_model_text:
+          type: string
+          description: The description text for the price model
+        identification:
+          type: string
+          description: The identification value
+          example: e6f252d6-30a0-5416-8533-126335a2ad2d
+        identification_type:
+          type: string
+          description: The identification type
+          enum:
+          - access_token
+          - none_access_token
+          - auth_token
+          - contract_id
+          - customer_id
+          - rfid
+          - contactless_payment
+          - direct_payment
+          - customer_rfid
+          - admin_remotestart
+          example: access_token
+        cpo_created:
+          type: boolean
+          description: True if initialized by the cpo
+          example: true
+        process_begin:
+          type: string
+          format: date-time
+          description: Process start on the platform
+          example: 2017-10-15T16:44:45+0200
+        process_end:
+          type: string
+          format: date-time
+          description: Process end on the platform
+          example: 2017-10-15T17:53:04+0200
+        transaction_begin:
+          type: string
+          format: date-time
+          description: Begin date of the transaction delivered by CPO (ideally first interaction between car and charging point)
+          example: 2017-10-15T16:44:40+0200
+        transaction_end:
+          type: string
+          format: date-time
+          description: End date of the transaction delivered by CPO (ideally last interaction between car and charging point)
+          example: 2017-10-15T17:52:59+0200
+        session_begin:
+          type: string
+          format: date-time
+          description: Begin date of the charging session delivered by CPO (ideally when current started flowing)
+          example: 2017-10-15T16:44:40+0200
+        session_end:
+          type: string
+          format: date-time
+          description: End date of the charging session delivered by CPO (ideally when current stopped flowing)
+          example: 2017-10-15T17:52:59+0200
+        transaction_duration:
+          type: integer
+          description: Duration of the transaction in minutes
+          example: 68
+        session_duration:
+          type: integer
+          description: Duration of the session in minutes
+          example: 68
+        kwh:
+          type: number
+          format: double
+          example: 17.46
+        has_signed_value:
+          type: boolean
+          example: true
+        price:
+          type: number
+          format: double
+          description: The charging session gross price
+          example: 1.7
+        tax_rate:
+          type: number
+          format: double
+          description: The charging session tax rate
+          example: 0.19
+        currency:
+          description: '[ISO 4217](https://en.wikipedia.org/wiki/ISO_4217) currency code.'
+          type: string
+          enum:
+          - EUR
+          - CHF
+          - SEK
+          - ILS
+          example: EUR
+        charging_session_type:
+          type: string
+          description: The service type provided
+          deprecated: true
+          enum:
+          - direct_charging
+          - comfort_charging
+          - charging
+          example: comfort_charging
+        status:
+          description: The charging session status
+          type: string
+          enum:
+          - initial
+          - authorization_pending
+          - start_accepted
+          - start_pending
+          - started
+          - stop_accepted
+          - stop_pending
+          - stopped
+          - closed
+          - canceled
+          - error
+          - error_consecutive_start
+          example: closed
+        charging_state:
+          description: Charging status of the session
+          type: string
+          enum:
+          - charging
+          - charge_suspended
+          - ending_charge
+          - end_charge
+        creation_date:
+          type: string
+          format: date-time
+          description: Creation date
+          example: 2017-10-15T16:44:40+0200
+        update_date:
+          type: string
+          format: date-time
+          description: Update date
+          example: 2017-10-15T17:53:04+0200
+        meter_start:
+          type: integer
+          description: Unix timestamp for meter start
+          example: 1541678196
+        meter_stop:
+          type: integer
+          description: Unix timestamp for meter stop
+          example: 1541678196
+        error_code:
+          type: string
+          description: Error code for faulty session
+          example: emc_timeout
+        error_message:
+          type: string
+          description: Error message for faulty session
+          example: Manually closed because of time out
   responses:
     400:
       description: Bad Request - Request is somehow wrong
@@ -1247,17 +1413,17 @@ components:
       in: query
       description: Number of current page
       schema:
-        pattern: ^[0-9]*$
-        type: string
-        default: "1"
+        type: integer
+        default: 1
     itemsPerPageParam:
       name: page_size
       in: query
       description: Number of items per page
       schema:
-        pattern: ^[0-9]*$
-        type: string
-        default: "50"
+        type: integer
+        default: 50
+        minimum: 1
+        maximum: 1000000
     infrastructureOnlyParam:
       name: infrastructure_only
       in: query
@@ -1367,6 +1533,114 @@ components:
       schema:
         pattern: ^[-+]?[0-9]*.?[0-9]+$
         type: string
+    searchStringParam:
+      name: search
+      in: query
+      description: Search term
+      schema:
+        type: string
+    chargingPointIdParam:
+      name: charging_point_id
+      in: query
+      description: Charging Point ID
+      schema:
+        type: string
+        pattern: "^[a-zA-Z0-9-_*+]+$"
+    chargingSessionStatusParam:
+      name: status
+      in: query
+      description: |
+        The charging session status to search for:
+          * initial
+          * authorization_pending
+          * start_accepted
+          * start_pending
+          * started
+          * stop_accepted
+          * stop_pending
+          * stopped
+          * closed
+          * canceled
+          * error
+          * error_consecutive_start
+          * ''
+      schema:
+        type: array
+        items:
+          type: string
+    datePickerSinceParam:
+      name: date_picker_since
+      in: query
+      description: The date time to search from
+      schema:
+        type: string
+        pattern: '^(\d{4})-(\d{2})-(\d{2})T(\d{2}):(\d{2}):(\d{2})[\040+-](\d{4})$'
+        format: date-time
+    datePickerUntilParam:
+      name: date_picker_until
+      in: query
+      description: The date time to search to
+      schema:
+        type: string
+        pattern: '^(\d{4})-(\d{2})-(\d{2})T(\d{2}):(\d{2}):(\d{2})[\040+-](\d{4})$'
+        format: date-time
+    sessionOrderByParam:
+      name: order_by
+      in: query
+      description: Name for sort
+      schema:
+        type: string
+        enum:
+          - sessionId
+          - emp
+          - ownerId
+          - chargingStationId
+          - pointScmId
+          - evseid
+          - status
+          - sessionBegin
+          - sessionEnd
+          - tariff
+          - price
+          - kwh
+          - chargingSessionType
+          - chargingType
+          - plugType
+          - country
+          - city
+          - zipCode
+          - creationDate
+          - updateDate
+    organizationTypeParam:
+      name: organization_type
+      in: query
+      description: Type of the organization
+      schema:
+        type: array
+        items:
+          type: string
+          enum:
+            - emp
+            - cpo
+            - owner
+            - ''
+    chargePointIdListParam:
+      name: charge_point_id
+      in: query
+      description: Filter by list of charge_point_id
+      schema:
+        type: array
+        items:
+          type: string
+  headers:
+    X-Total-Count:
+      description: Total number of items
+      schema:
+        type: integer
+    X-Total-Pages:
+      description: Total number of pages
+      schema:
+        type: integer
   requestBodies:
     ChargingPointRequest:
       description: Create a charging point
