@@ -1126,6 +1126,24 @@ components:
           type: string
           description: Error message for faulty session
           example: Manually closed because of time out
+    WebhookEvent:
+      type: object
+      properties:
+        eventId:
+          type: string
+          description: Event ID
+        eventName:
+          type: string
+          description: Event name
+        resourceType:
+          type: string
+          description: Resource type
+        resourceId:
+          type: string
+          description: Resource ID
+        action:
+          type: string
+          description: Action
   responses:
     400:
       description: Bad Request - Request is somehow wrong
@@ -1644,3 +1662,13 @@ components:
           tokenUrl: https://oauth-staging.emobilitycloud.com/token
           scopes:
             account: Account function
+x-webhooks:
+  organization-event:
+    post:
+      summary: Forwards an organization event to the defined callback.
+      operationId: organization-event
+      requestBody:
+        $ref: '#/components/schemas/WebhookEvent'
+      responses:
+        200:
+          description: Return a 200 status to indicate that the data was received successfully
