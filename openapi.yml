@@ -1734,6 +1734,8 @@ components:
 x-webhooks:
   organization-event:
     post:
+      tags:
+      - Webhooks
       summary: Forwards an organization event to the defined callback.
       operationId: organization-event
       requestBody:
