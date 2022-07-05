@@ -1126,24 +1126,93 @@ components:
           type: string
           description: Error message for faulty session
           example: Manually closed because of time out
-    WebhookEvent:
+    EventLog:
+      description: Event log information
       type: object
       properties:
-        eventId:
+        id:
+          readOnly: true
           type: string
-          description: Event ID
-        eventName:
+          example: 88292387-5212-4454-bfd1-66569d65197d
+        tenant:
+          readOnly: true
           type: string
-          description: Event name
-        resourceType:
+          maxLength: 50
+          description: Tenant
+          example: dewln
+        resource_id:
+          readOnly: true
           type: string
-          description: Resource type
-        resourceId:
-          type: string
+          maxLength: 50
           description: Resource ID
-        action:
+          example: cf834a4f-2b35-4f11-8dea-d1932cdd748e
+        resource_type:
+          readOnly: true
           type: string
+          maxLength: 50
+          description: Resource type
+          example: tariff
+        resource_owner:
+          readOnly: true
+          type: string
+          maxLength: 50
+          description: Resource owner
+          example: dewln
+        correlation_id:
+          readOnly: true
+          type: string
+          maxLength: 50
+          description: Correlation ID
+          example: eedfb9c0-6e38-4a6f-9ba2-de19ee911cfe
+        action:
+          readOnly: true
+          type: string
+          maxLength: 10
           description: Action
+          example: update
+        source:
+          readOnly: true
+          type: string
+          maxLength: 50
+          description: Source
+          example: business_relation
+        actor_tenant:
+          readOnly: true
+          type: string
+          description: Actor tenant
+          example: dewln
+        actor_type:
+          readOnly: true
+          type: string
+          maxLength: 20
+          description: Actor type
+          example: system
+        actor_id:
+          readOnly: true
+          type: string
+          maxLength: 50
+          description: Actor ID
+          example: DEWLNC123456789
+        event_date:
+          readOnly: true
+          type: string
+          format: date-time
+          description: Event date
+          example: 2015-11-25T10:43:02+0100
+        event_name:
+          readOnly: true
+          type: string
+          maxLength: 50
+          description: Event name
+          example: ocpp_charging_station_update
+        data:
+          readOnly: true
+          type: string
+          description: JSON encoded data
+        core_data:
+          readOnly: true
+          type: string
+          description: JSON encoded data
   responses:
     400:
       description: Bad Request - Request is somehow wrong
@@ -1668,7 +1737,7 @@ x-webhooks:
       summary: Forwards an organization event to the defined callback.
       operationId: organization-event
       requestBody:
-        $ref: '#/components/schemas/WebhookEvent'
+        $ref: '#/components/schemas/EventLog'
       responses:
         200:
           description: Return a 200 status to indicate that the data was received successfully
