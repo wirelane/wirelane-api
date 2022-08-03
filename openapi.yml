@@ -26,12 +26,7 @@ info:
 
     grant_type=password&client_id=...&client_secret=...&username=...&password=...
     ```
-    From the returned JSON, take the value of `access_token` and use it in the API request as follows:
-    ```
-    GET https://api.wirelane.com/apis/emc/organizations/id/dewln/points?page=1&page_size=50
-    Accept: application/json
-    Authorization: Bearer eyJ0...
-    ```
+    From the returned JSON, take the value of `access_token` and use it in the API requests.
 
     ## Unauthenticated endpoints (OAuth2ClientCredential)
 
@@ -51,7 +46,7 @@ info:
 
     grant_type=client_credentials&client_id=...&client_secret=...&scope=account
     ```
-    From the returned JSON, take the value of `access_token` and use it in the API request.
+    From the returned JSON, take the value of `access_token` and use it in the API requests.
     
     ## Using the access token
 
