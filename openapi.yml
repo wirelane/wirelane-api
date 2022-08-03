@@ -8,7 +8,7 @@ info:
 
     There are two kinds of endpoints: endpoints that are accessible without having an user account on the Wirelane platform, and endpoints that are accessible without. Both need a client_id and client_secret.
 
-    ## Authenticated endpoints
+    ## Authenticated endpoints (OAuth2Password)
 
     Retrieving a JWT access token on staging:
     ```
@@ -33,7 +33,7 @@ info:
     Authorization: Bearer eyJ0...
     ```
 
-    ## Unauthenticated endpoints
+    ## Unauthenticated endpoints (OAuth2ClientCredential)
 
     Retrieving a JWT access token on staging:
     ```
