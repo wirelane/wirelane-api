@@ -52,6 +52,15 @@ info:
     grant_type=client_credentials&client_id=...&client_secret=...&scope=account
     ```
     From the returned JSON, take the value of `access_token` and use it in the API request.
+    
+    ## Using the access token
+
+    The `access_token` property from the authentication request needs to be provided as authorization header to the requests:
+    ```
+    GET https://api.wirelane.com/apis/emc/organizations/id/dewln/points?page=1&page_size=50
+    Accept: application/json
+    Authorization: Bearer $access_token
+    ```
 
     ## Host names for the endpoints
 
