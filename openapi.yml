@@ -77,6 +77,136 @@ security:
 - OAuth2Password:
   - account_admin
 paths:
+  /organizations/id/{organizationId}/members:
+    get:
+      tags:
+        - Organizations Members
+      summary: Get members of an organization
+      description: |
+        Get an ordered and paginated list of members of an organization.
+        Search query can be used to filter for members by role, status, email or creation user.
+      operationId: getMembers
+      parameters:
+        - $ref: '#/components/parameters/organizationIdParam'
+        - $ref: '#/components/parameters/pageNumberParam'
+        - $ref: '#/components/parameters/itemsPerPageParam'
+        - $ref: '#/components/parameters/searchStringParam'
+        - name: order_by
+          in: query
+          description: Name for sort
+          required: false
+          schema:
+            type: string
+            enum:
+              - email
+              - status
+        - $ref: '#/components/parameters/orderDirectionParam'
+        - name: member_status
+          in: query
+          required: false
+          schema:
+            type: array
+            items:
+              type: string
+              enum:
+                - pending
+                - active
+                - revoked
+                - terminated
+      responses:
+        200:
+          description: List of members
+          headers:
+            X-Total-Count:
+              $ref: '#/components/headers/X-Total-Count'
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Member'
+        400:
+          $ref: '#/components/responses/400'
+        401:
+          $ref: '#/components/responses/401'
+        403:
+          $ref: '#/components/responses/403'
+        404:
+          $ref: '#/components/responses/404'
+        500:
+          $ref: '#/components/responses/500'
+  /organizations/id/{organizationId}/members/aid/{accountId}:
+    get:
+      tags:
+        - Organizations Members
+      summary: Get member by account ID
+      operationId: getMemberByAccountId
+      parameters:
+        - $ref: '#/components/parameters/organizationIdParam'
+        - $ref: '#/components/parameters/accountIdParam'
+      responses:
+        200:
+          description: Returns specific member object
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Member'
+        401:
+          $ref: '#/components/responses/401'
+        403:
+          $ref: '#/components/responses/403'
+        404:
+          $ref: '#/components/responses/404'
+        500:
+          $ref: '#/components/responses/500'
+  /organizations/id/{organizationId}/members/aid/{accountId}/payment_methods:
+    get:
+      tags:
+        - Organizations Members Payments
+      summary: Get payment methods of the member
+      operationId: getOrganizationMemberPaymentMethods
+      parameters:
+        - $ref: '#/components/parameters/organizationIdParam'
+        - $ref: '#/components/parameters/accountIdParam'
+      responses:
+        200:
+          description: Returns a list of payment methods models belonging to the member
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/PaymentMethod'
+        401:
+          $ref: '#/components/responses/401'
+        403:
+          $ref: '#/components/responses/403'
+        500:
+          $ref: '#/components/responses/500'
+  /organizations/id/{organizationId}/members/aid/{accountId}/subscription:
+    get:
+      tags:
+        - Organizations Members Subscriptions
+      summary: Get member subscription
+      description: |
+        Get subscriptions for organization members
+      operationId: getMemberSubscription
+      parameters:
+        - $ref: '#/components/parameters/organizationIdParam'
+        - $ref: '#/components/parameters/accountIdParam'
+      responses:
+        200:
+          description: Returns the members subscription data
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Subscription'
+        401:
+          $ref: '#/components/responses/401'
+        403:
+          $ref: '#/components/responses/403'
+        500:
+          $ref: '#/components/responses/500'
   /organizations/id/{organizationId}/points:
     get:
       tags:
@@ -552,584 +682,166 @@ paths:
           $ref: '#/components/responses/500'
 components:
   schemas:
-    OpeningHours:
+    Account:
       type: object
       properties:
-        label:
+        account_id:
           type: string
-          description: Arbitrary label to give the availability.
-          example: Mon-Fr 08:00-22:00, Sat-Sun CLOSED
-        open247:
-          type: boolean
-          description: Is available 24/7. If true, Monday - Sunday times will be ignored.
-          example: false
-        monday:
-          type: array
-          description: Start and end time pairs representing availability on Mondays.
-          example:
-          - - "0900"
-            - "1230"
-          - - "1330"
-            - "0000"
-          items:
-            type: array
-            items:
-              type: string
-        tuesday:
-          type: array
-          description: Start and end time pairs representing availability on Tuesdays.
-          example:
-            - - "0000"
-              - "0000"
-          items:
-            type: array
-            items:
-              type: string
-        wednesday:
-          type: array
-          description: Start and end time pairs representing availability on Wednesdays.
-          example:
-          - - "0900"
-            - "1230"
-          - - "1330"
-            - "0000"
-          items:
-            type: array
-            items:
-              type: string
-        thursday:
-          type: array
-          description: Start and end time pairs representing availability on Thursdays.
-          example:
-          - - "0000"
-            - "0000"
-          items:
-            type: array
-            items:
-              type: string
-        friday:
-          type: array
-          description: Start and end time pairs representing availability on Fridays.
-          example:
-          - - "0900"
-            - "1230"
-          - - "1330"
-            - "1645"
-          - - "1800"
-            - "0000"
-          items:
-            type: array
-            items:
-              type: string
-        saturday:
-          type: array
-          description: Start and end time pairs representing availability on Saturdays.
-          example:
-          - - "0000"
-            - "0000"
-          items:
-            type: array
-            items:
-              type: string
-        sunday:
-          type: array
-          description: Start and end time pairs representing availability on Sundays.
-          example: []
-          items:
-            type: array
-            items:
-              type: string
-        exceptionalOpenings:
-          type: object
-          properties: {}
-          description: Start and end time pairs representing availability on specific
-            dates. Dates in Y-m-d format. * can be used as year, month or day wildcards
-            to represent recurring dates.
-          example:
-            2020-12-24:
-            - - "0000"
-              - "0900"
-            - - "0930"
-              - "1300"
-            '*-12-25': []
-            '*-12-26': []
-    HttpError:
-      type: object
-      properties:
-        error_code:
-          type: string
-          description: The error code describing the error
-          example: validation_error
-        error_message:
-          type: string
-          description: The human readable error message describing the error
-          example: Provided data is not valid
-    ChargingPointGroup:
-      type: object
-      properties:
-        id:
-          type: integer
-          description: The internal ID of the charging point group
-          example: 1
-        name:
-          type: string
-          description: The group name
-          example: AC Chargers
-        owner:
-          type: string
-          example: WIRELANE-2500781
-    ChargingPoint:
-      type: object
-      required:
-      - charge_point_id
-      properties:
-        id:
-          type: string
-          description: The internal ID of the EVSE (not to be displayed). The same
-            value as `charging_point_id`. This value is generated by the Wirelane
-            backend when the charge point is initially submitted.
+          description: ID of the account
+          example: ABCD1234
           readOnly: true
-          example: 00eb08a9b45c69a4f9f14982a0095e12
-        charging_point_id:
+        tenant:
           type: string
-          description: The internal ID of the EVSE (not to be displayed). The same
-            value as `id`. This value is generated by the Wirelane backend when the
-            charge point is initially submitted.
+          description: Tenant (EMP) of the account
+          example: dewln
           readOnly: true
-          example: 00eb08a9b45c69a4f9f14982a0095e12
-        charging_station_id:
-          type: string
-          description: An optional user-defined ID to group different charging points
-            into one logical station. Used for grouping in some apps.
-          example: 98fd4f3a554f33c12eca9b5e2e4b369a
-        charge_point_id:
-          type: string
-          description: The technical ID of the charge point connector. Shown to the
-            user, and could be printed on the label (label code)
-          example: 00eb08a9b45c69a4f9f14982a0095e12
-        evseid:
-          type: string
-          description: The EVSE ID used for roaming.
-          example: DESGDE000801
-        display_id:
-          type: string
-          example: RED_LEFT
-        owner:
-          type: string
-          description: The owner of the charging station.
-          example: WIRELANE-2500781
-        emp:
-          type: string
-          description: Name of the Emobility provider. [Deprecated]
-          example: desgd
-        cpo:
-          type: string
-          description: Name of the Charge Point Operator
-          example: desgd
-        plug_types:
-          type: array
-          description: Up to four types of plugs.
-          example:
-          - TYPE_2
-          - SCHUKO
-          items:
-            type: string
-            enum:
-            - TYPE_1
-            - TYPE_1_ATCH
-            - TYPE_2
-            - TYPE_2_ATCH
-            - TYPE_3
-            - TYPE_3_ATCH
-            - CHADEMO
-            - CCS
-            - SCHUKO
-            - UNKNOWN
-        charging_type:
-          type: string
-          description: Electricity type (AC or DC)
-          enum:
-          - AC
-          - DC
-        model:
-          type: string
-          description: Name of the charge point model
-        serial_number:
-          type: string
-          description: The serial number
-        current:
-          type: integer
-          description: Current in Ampere
-        power:
-          type: number
-          description: Power in kWh
-          format: double
-          example: 22.0
-        voltage:
-          type: integer
-          description: Voltage in V
-          example: 230
-        reservable:
-          type: boolean
-          description: If this charging point supports reservations
-          example: true
-        authentication_types:
-          type: array
-          description: Authentication method for the charging point
-          example:
-          - card
-          - remote
-          - nfc_terminal
-          - direct
-          items:
-            type: string
-            enum:
-            - card
-            - remote
-            - nfc_terminal
-            - direct
-        status:
-          type: string
-          description: |
-            Status of the points. If one point in the station hits the requested status the entire station is returned.  (Comma Separated List)
-              * FREE : Point is free.
-              * IN_USE :  Point is used by a card (might also be reserved).
-              * UNAVAILABLE : Point is unavailable right now. Might not be installed or broken.
-              * UNKNOWN : The point status is unknonwn.
-              * FAULTED : Point is faulted or temporary faulted.
-              * RESERVED : The point is reserved.
-              * CLOSED : The point status is closed (the point is not in use anymore).
-          enum:
-          - FREE
-          - IN_USE
-          - UNAVAILABLE
-          - UNKNOWN
-          - FAULTED
-          - RESERVED
-          - CLOSED
-        country:
-          type: string
-          description: In ISO 3166-1 alpha-2
-          example: DE
-        city:
-          type: string
-          example: Schwäbisch Gmünd
-        zip_code:
-          type: string
-          example: "73525"
-        street:
-          type: string
-          example: Honiggasse
-        house_number:
-          type: string
-          example: "21"
-        opening_hours:
-          type: string
-          description: '@deprecated - use availability instead. Label describing charging
-            point availability.'
-          example: Mo-Fr 09:00 - 20:00
-        availability:
-          type: object
-          description: Availability of charging point
-          allOf:
-          - $ref: '#/components/schemas/OpeningHours'
-        timezone:
-          type: string
-          description: Timezone of charging point.
-          example: Europe/Berlin
-        service_hotline:
-          type: string
-          description: The telephone number of the service hotline
-          example: 8.00557788E8
-        longitude:
-          type: number
-          description: Longitude of the charging point (WGS 84)
-          format: float
-          example: 9.79944
-        latitude:
-          type: number
-          description: Latitude of the charging point (WGS 84)
-          format: float
-          example: 48.8026
-        distance:
-          type: number
-          description: Is returned when searching for charging points and providing
-            a center
-          format: float
-          example: 1002.23
-        creation_date:
-          type: string
-          description: ISO 8601
-          format: date-time
-          readOnly: true
-        update_date:
-          type: string
-          description: ISO 8601
-          format: date-time
-          readOnly: true
-        payment_url:
-          type: string
-          example: https://www.wirelane.com/laydepay
-        charging_provider:
-          type: string
-          description: If the charging point is using the Wirelane backend or a delegated
-            backend, use "emc".
-          readOnly: true
-          example: emc
-        charging_group:
-          type: array
-          items:
-            $ref: '#/components/schemas/ChargingPointGroup'
-    ChargingSession:
-      type: object
-      required:
-      - customer_id
-      - owner
-      - emp
-      - session_id
-      - cpo_session_id
-      - charging_point_id
-      properties:
-        session_id:
-          type: string
-          description: Internal session id
-        cpo_session_id:
-          type: string
-          description: Charging session id of the CPO
-          example: 19eea288-1ee1-5aa9-b258-38fea1df55f3
-        customer_id:
-          type: string
-          example: WIRELANE-7900915
-        customer_email:
+        email:
           type: string
           format: email
-          example: customer@example.com
-        customer_membership_owner:
+          description: Email address of the account
+          example: test@example.com
+        invoice_email_address:
           type: string
-          example: wirelane
-        card_number:
+          format: email
+          description: Additional email address to send invoices to
+          example: invoices@example.com
+        first_name:
           type: string
-          example: WIRELANE123456
-        card_short_reference:
+          description: First name
+          example: John
+        last_name:
           type: string
-          example: CarXYZ
+          description: Last name
+          example: Doe
+        company_name:
+          type: string
+          description: Company name
+          example: Wirelane GmbH
+        vat_number:
+          type: string
+          description: VAT number of the company
+          example: DE999999999
+        phone_number:
+          type: string
+          description: Phone number in +33 456789 format
+          pattern: '[+]?[0-9 ]+'
+          example: +33 4567 89
+        address:
+          $ref: '#/components/schemas/PostalAddress'
+        avatar_url:
+          type: string
+          readOnly: true
+          description: Url to the avatar image of the account
         language:
+          type: string
           description: '[ISO 639-1](https://en.wikipedia.org/wiki/List_of_ISO_639-1_codes) language code.'
+          example: en
+          pattern: '^[a-z]{2}$'
+        status:
           type: string
-          example: de
-        charging_station_id:
-          type: string
-          example: 98fd4f3a554f33c12eca9b5e2e4b369a
-        charging_point_id:
-          type: string
-          example: 00eb08a9b45c69a4f9f14982a0095e12
-        charge_point_id:
-          type: string
-          example: DESGDE000801-2
-        evseid:
-          type: string
-          example: DESGDE000801
-        owner:
-          description: Charging point owner
-          type: string
-          example: WIRELANE-2500781
-        emp:
-          description: E-Mobility Service Provider
-          type: string
-          example: desgd
-        cpo:
-          description: Charging point operator
-          type: string
-          example: eclearing
-        charging_provider:
-          description: Charging point provider
-          type: string
-          example: wirelane
-        plug_type:
-          type: string
-          example: TYPE_2
-        charging_type:
-          type: string
+          description: State of the account
+          readOnly: true
           enum:
-          - AC
-          - DC
+            - ACTIVE
+            - INACTIVE
+            - BLOCKED
+        salutation:
+          type: string
+          description: |
+            Salutation / title
+              * `Company`
+              * `Male`
+              * `Female`
+              * `Undefined`
+              * `Unknown`
+              * `Local authority`
+              * `unknown`: (deprecated)
+              * `undefined`: (deprecated)
+              * `mr`: (deprecated)
+              * `mrs`: (deprecated)
+              * `company`: (deprecated)
+              * `local_authority`: (deprecated)
+          default: Unknown
+        terminationRequested:
+          type: string
+          format: date-time
+          readOnly: true
+          description: Date when the account termination was requested.
+        terminationEffective:
+          type: string
+          format: date-time
+          readOnly: true
+          description: Date when the account termination will be effective.
+        terminationReason:
+          type: string
+          readOnly: true
+          description: Reason for termination of the account.
+        billable:
+          description: Is the account free/billable. If false then invoices will not be billed will not sent during invoice run.
+          type: boolean
+          default: true
+          example: true
+        created:
+          type: string
+          format: date-time
+          readOnly: true
+          description: Date when the account was created.
+        updated:
+          type: string
+          format: date-time
+          readOnly: true
+          description: Date when the account was updated.
+        anonymized:
+          description: Flag indicating if the account data has been anonymized.
+          type: boolean
+          readOnly: true
+          example: false
+        blocked_reasons:
+          description: Reasons for account block
+          type: array
+          readOnly: true
+          items:
+            type: string
+            enum:
+              - NO_ACTIVE_SUBSCRIPTION
+              - UNPAID_INVOICE
+          example:
+            - UNPAID_INVOICE
+    Address:
+      type: object
+      required:
+        - street
+        - house_number
+        - zip_code
+        - city
+        - country
+      properties:
+        id:
+          description: Address ID (reference)
+          type: integer
+          example: 1234
+          readOnly: true
+        street:
+          type: string
+          description: Street
+          example: Sample Street
+        house_number:
+          type: string
+          description: House number
+          example: 12a
+        zip_code:
+          type: string
+          description: Zip code, e.g. "80539" for Munich (DE) or "3029 AD" for Rotterdam (NL)
+          example: '80539'
+        city:
+          type: string
+          description: City
+          example: Berlin
         country:
           type: string
           description: '[ISO 3166-1 alpha-2](https://en.wikipedia.org/wiki/ISO_3166-1_alpha-2) country code.'
           example: DE
-        city:
-          type: string
-          example: Schwäbisch Gmünd
-        zip_code:
-          type: string
-          example: 73525
-        street:
-          type: string
-          example: Honiggasse
-        house_number:
-          type: string
-          example: 21
-        tariff:
-          type: string
-          description: The tariff name for the charging session
-          example: LADEPAY_01
-        tariff_text:
-          type: string
-          description: The description text for the tariff
-        price_model:
-          type: string
-          description: The price model key for the charging session
-          example: desgd_ladepay_01
-        price_model_text:
-          type: string
-          description: The description text for the price model
-        identification:
-          type: string
-          description: The identification value
-          example: e6f252d6-30a0-5416-8533-126335a2ad2d
-        identification_type:
-          type: string
-          description: The identification type
-          enum:
-          - access_token
-          - none_access_token
-          - auth_token
-          - contract_id
-          - customer_id
-          - rfid
-          - contactless_payment
-          - direct_payment
-          - customer_rfid
-          - admin_remotestart
-          example: access_token
-        cpo_created:
-          type: boolean
-          description: True if initialized by the cpo
-          example: true
-        process_begin:
-          type: string
-          format: date-time
-          description: Process start on the platform
-          example: 2017-10-15T16:44:45+0200
-        process_end:
-          type: string
-          format: date-time
-          description: Process end on the platform
-          example: 2017-10-15T17:53:04+0200
-        transaction_begin:
-          type: string
-          format: date-time
-          description: Begin date of the transaction delivered by CPO (ideally first interaction between car and charging point)
-          example: 2017-10-15T16:44:40+0200
-        transaction_end:
-          type: string
-          format: date-time
-          description: End date of the transaction delivered by CPO (ideally last interaction between car and charging point)
-          example: 2017-10-15T17:52:59+0200
-        session_begin:
-          type: string
-          format: date-time
-          description: Begin date of the charging session delivered by CPO (ideally when current started flowing)
-          example: 2017-10-15T16:44:40+0200
-        session_end:
-          type: string
-          format: date-time
-          description: End date of the charging session delivered by CPO (ideally when current stopped flowing)
-          example: 2017-10-15T17:52:59+0200
-        transaction_duration:
-          type: integer
-          description: Duration of the transaction in minutes
-          example: 68
-        session_duration:
-          type: integer
-          description: Duration of the session in minutes
-          example: 68
-        kwh:
-          type: number
-          format: double
-          example: 17.46
-        has_signed_value:
-          type: boolean
-          example: true
-        price:
-          type: number
-          format: double
-          description: The charging session gross price
-          example: 1.7
-        tax_rate:
-          type: number
-          format: double
-          description: The charging session tax rate
-          example: 0.19
-        currency:
-          description: '[ISO 4217](https://en.wikipedia.org/wiki/ISO_4217) currency code.'
-          type: string
-          enum:
-          - EUR
-          - CHF
-          - SEK
-          - ILS
-          example: EUR
-        charging_session_type:
-          type: string
-          description: The service type provided
-          deprecated: true
-          enum:
-          - direct_charging
-          - comfort_charging
-          - charging
-          example: comfort_charging
-        status:
-          description: The charging session status
-          type: string
-          enum:
-          - initial
-          - authorization_pending
-          - start_accepted
-          - start_pending
-          - started
-          - stop_accepted
-          - stop_pending
-          - stopped
-          - closed
-          - canceled
-          - error
-          - error_consecutive_start
-          example: closed
-        charging_state:
-          description: Charging status of the session
-          type: string
-          enum:
-          - charging
-          - charge_suspended
-          - ending_charge
-          - end_charge
-        creation_date:
-          type: string
-          format: date-time
-          description: Creation date
-          example: 2017-10-15T16:44:40+0200
-        update_date:
-          type: string
-          format: date-time
-          description: Update date
-          example: 2017-10-15T17:53:04+0200
-        meter_start:
-          type: integer
-          description: Unix timestamp for meter start
-          example: 1541678196
-        meter_stop:
-          type: integer
-          description: Unix timestamp for meter stop
-          example: 1541678196
-        error_code:
-          type: string
-          description: Error code for faulty session
-          example: emc_timeout
-        error_message:
-          type: string
-          description: Error message for faulty session
-          example: Manually closed because of time out
+          pattern: '^[A-Z]{2}$'
     EventLog:
       description: Event log information
       type: object
@@ -1217,6 +929,871 @@ components:
           readOnly: true
           type: string
           description: JSON encoded data
+    ChargingPoint:
+      type: object
+      required:
+        - charge_point_id
+      properties:
+        id:
+          type: string
+          description: The internal ID of the EVSE (not to be displayed). The same
+            value as `charging_point_id`. This value is generated by the Wirelane
+            backend when the charge point is initially submitted.
+          readOnly: true
+          example: 00eb08a9b45c69a4f9f14982a0095e12
+        charging_point_id:
+          type: string
+          description: The internal ID of the EVSE (not to be displayed). The same
+            value as `id`. This value is generated by the Wirelane backend when the
+            charge point is initially submitted.
+          readOnly: true
+          example: 00eb08a9b45c69a4f9f14982a0095e12
+        charging_station_id:
+          type: string
+          description: An optional user-defined ID to group different charging points
+            into one logical station. Used for grouping in some apps.
+          example: 98fd4f3a554f33c12eca9b5e2e4b369a
+        charge_point_id:
+          type: string
+          description: The technical ID of the charge point connector. Shown to the
+            user, and could be printed on the label (label code)
+          example: 00eb08a9b45c69a4f9f14982a0095e12
+        evseid:
+          type: string
+          description: The EVSE ID used for roaming.
+          example: DESGDE000801
+        display_id:
+          type: string
+          example: RED_LEFT
+        owner:
+          type: string
+          description: The owner of the charging station.
+          example: WIRELANE-2500781
+        emp:
+          type: string
+          description: Name of the Emobility provider. [Deprecated]
+          example: desgd
+        cpo:
+          type: string
+          description: Name of the Charge Point Operator
+          example: desgd
+        plug_types:
+          type: array
+          description: Up to four types of plugs.
+          example:
+            - TYPE_2
+            - SCHUKO
+          items:
+            type: string
+            enum:
+              - TYPE_1
+              - TYPE_1_ATCH
+              - TYPE_2
+              - TYPE_2_ATCH
+              - TYPE_3
+              - TYPE_3_ATCH
+              - CHADEMO
+              - CCS
+              - SCHUKO
+              - UNKNOWN
+        charging_type:
+          type: string
+          description: Electricity type (AC or DC)
+          enum:
+            - AC
+            - DC
+        model:
+          type: string
+          description: Name of the charge point model
+        serial_number:
+          type: string
+          description: The serial number
+        current:
+          type: integer
+          description: Current in Ampere
+        power:
+          type: number
+          description: Power in kWh
+          format: double
+          example: 22.0
+        voltage:
+          type: integer
+          description: Voltage in V
+          example: 230
+        reservable:
+          type: boolean
+          description: If this charging point supports reservations
+          example: true
+        authentication_types:
+          type: array
+          description: Authentication method for the charging point
+          example:
+            - card
+            - remote
+            - nfc_terminal
+            - direct
+          items:
+            type: string
+            enum:
+              - card
+              - remote
+              - nfc_terminal
+              - direct
+        status:
+          type: string
+          description: |
+            Status of the points. If one point in the station hits the requested status the entire station is returned.  (Comma Separated List)
+              * FREE : Point is free.
+              * IN_USE :  Point is used by a card (might also be reserved).
+              * UNAVAILABLE : Point is unavailable right now. Might not be installed or broken.
+              * UNKNOWN : The point status is unknonwn.
+              * FAULTED : Point is faulted or temporary faulted.
+              * RESERVED : The point is reserved.
+              * CLOSED : The point status is closed (the point is not in use anymore).
+          enum:
+            - FREE
+            - IN_USE
+            - UNAVAILABLE
+            - UNKNOWN
+            - FAULTED
+            - RESERVED
+            - CLOSED
+        country:
+          type: string
+          description: In ISO 3166-1 alpha-2
+          example: DE
+        city:
+          type: string
+          example: Schwäbisch Gmünd
+        zip_code:
+          type: string
+          example: "73525"
+        street:
+          type: string
+          example: Honiggasse
+        house_number:
+          type: string
+          example: "21"
+        opening_hours:
+          type: string
+          description: '@deprecated - use availability instead. Label describing charging
+            point availability.'
+          example: Mo-Fr 09:00 - 20:00
+        availability:
+          type: object
+          description: Availability of charging point
+          allOf:
+            - $ref: '#/components/schemas/OpeningHours'
+        timezone:
+          type: string
+          description: Timezone of charging point.
+          example: Europe/Berlin
+        service_hotline:
+          type: string
+          description: The telephone number of the service hotline
+          example: 8.00557788E8
+        longitude:
+          type: number
+          description: Longitude of the charging point (WGS 84)
+          format: float
+          example: 9.79944
+        latitude:
+          type: number
+          description: Latitude of the charging point (WGS 84)
+          format: float
+          example: 48.8026
+        distance:
+          type: number
+          description: Is returned when searching for charging points and providing
+            a center
+          format: float
+          example: 1002.23
+        creation_date:
+          type: string
+          description: ISO 8601
+          format: date-time
+          readOnly: true
+        update_date:
+          type: string
+          description: ISO 8601
+          format: date-time
+          readOnly: true
+        payment_url:
+          type: string
+          example: https://www.wirelane.com/laydepay
+        charging_provider:
+          type: string
+          description: If the charging point is using the Wirelane backend or a delegated
+            backend, use "emc".
+          readOnly: true
+          example: emc
+        charging_group:
+          type: array
+          items:
+            $ref: '#/components/schemas/ChargingPointGroup'
+    ChargingPointGroup:
+      type: object
+      properties:
+        id:
+          type: integer
+          description: The internal ID of the charging point group
+          example: 1
+        name:
+          type: string
+          description: The group name
+          example: AC Chargers
+        owner:
+          type: string
+          example: WIRELANE-2500781
+    ChargingSession:
+      type: object
+      required:
+        - customer_id
+        - owner
+        - emp
+        - session_id
+        - cpo_session_id
+        - charging_point_id
+      properties:
+        session_id:
+          type: string
+          description: Internal session id
+        cpo_session_id:
+          type: string
+          description: Charging session id of the CPO
+          example: 19eea288-1ee1-5aa9-b258-38fea1df55f3
+        customer_id:
+          type: string
+          example: WIRELANE-7900915
+        customer_email:
+          type: string
+          format: email
+          example: customer@example.com
+        customer_membership_owner:
+          type: string
+          example: wirelane
+        card_number:
+          type: string
+          example: WIRELANE123456
+        card_short_reference:
+          type: string
+          example: CarXYZ
+        language:
+          description: '[ISO 639-1](https://en.wikipedia.org/wiki/List_of_ISO_639-1_codes) language code.'
+          type: string
+          example: de
+        charging_station_id:
+          type: string
+          example: 98fd4f3a554f33c12eca9b5e2e4b369a
+        charging_point_id:
+          type: string
+          example: 00eb08a9b45c69a4f9f14982a0095e12
+        charge_point_id:
+          type: string
+          example: DESGDE000801-2
+        evseid:
+          type: string
+          example: DESGDE000801
+        owner:
+          description: Charging point owner
+          type: string
+          example: WIRELANE-2500781
+        emp:
+          description: E-Mobility Service Provider
+          type: string
+          example: desgd
+        cpo:
+          description: Charging point operator
+          type: string
+          example: eclearing
+        charging_provider:
+          description: Charging point provider
+          type: string
+          example: wirelane
+        plug_type:
+          type: string
+          example: TYPE_2
+        charging_type:
+          type: string
+          enum:
+            - AC
+            - DC
+        country:
+          type: string
+          description: '[ISO 3166-1 alpha-2](https://en.wikipedia.org/wiki/ISO_3166-1_alpha-2) country code.'
+          example: DE
+        city:
+          type: string
+          example: Schwäbisch Gmünd
+        zip_code:
+          type: string
+          example: 73525
+        street:
+          type: string
+          example: Honiggasse
+        house_number:
+          type: string
+          example: 21
+        tariff:
+          type: string
+          description: The tariff name for the charging session
+          example: LADEPAY_01
+        tariff_text:
+          type: string
+          description: The description text for the tariff
+        price_model:
+          type: string
+          description: The price model key for the charging session
+          example: desgd_ladepay_01
+        price_model_text:
+          type: string
+          description: The description text for the price model
+        identification:
+          type: string
+          description: The identification value
+          example: e6f252d6-30a0-5416-8533-126335a2ad2d
+        identification_type:
+          type: string
+          description: The identification type
+          enum:
+            - access_token
+            - none_access_token
+            - auth_token
+            - contract_id
+            - customer_id
+            - rfid
+            - contactless_payment
+            - direct_payment
+            - customer_rfid
+            - admin_remotestart
+          example: access_token
+        cpo_created:
+          type: boolean
+          description: True if initialized by the cpo
+          example: true
+        process_begin:
+          type: string
+          format: date-time
+          description: Process start on the platform
+          example: 2017-10-15T16:44:45+0200
+        process_end:
+          type: string
+          format: date-time
+          description: Process end on the platform
+          example: 2017-10-15T17:53:04+0200
+        transaction_begin:
+          type: string
+          format: date-time
+          description: Begin date of the transaction delivered by CPO (ideally first interaction between car and charging point)
+          example: 2017-10-15T16:44:40+0200
+        transaction_end:
+          type: string
+          format: date-time
+          description: End date of the transaction delivered by CPO (ideally last interaction between car and charging point)
+          example: 2017-10-15T17:52:59+0200
+        session_begin:
+          type: string
+          format: date-time
+          description: Begin date of the charging session delivered by CPO (ideally when current started flowing)
+          example: 2017-10-15T16:44:40+0200
+        session_end:
+          type: string
+          format: date-time
+          description: End date of the charging session delivered by CPO (ideally when current stopped flowing)
+          example: 2017-10-15T17:52:59+0200
+        transaction_duration:
+          type: integer
+          description: Duration of the transaction in minutes
+          example: 68
+        session_duration:
+          type: integer
+          description: Duration of the session in minutes
+          example: 68
+        kwh:
+          type: number
+          format: double
+          example: 17.46
+        has_signed_value:
+          type: boolean
+          example: true
+        price:
+          type: number
+          format: double
+          description: The charging session gross price
+          example: 1.7
+        tax_rate:
+          type: number
+          format: double
+          description: The charging session tax rate
+          example: 0.19
+        currency:
+          description: '[ISO 4217](https://en.wikipedia.org/wiki/ISO_4217) currency code.'
+          type: string
+          enum:
+            - EUR
+            - CHF
+            - SEK
+            - ILS
+          example: EUR
+        charging_session_type:
+          type: string
+          description: The service type provided
+          deprecated: true
+          enum:
+            - direct_charging
+            - comfort_charging
+            - charging
+          example: comfort_charging
+        status:
+          description: The charging session status
+          type: string
+          enum:
+            - initial
+            - authorization_pending
+            - start_accepted
+            - start_pending
+            - started
+            - stop_accepted
+            - stop_pending
+            - stopped
+            - closed
+            - canceled
+            - error
+            - error_consecutive_start
+          example: closed
+        charging_state:
+          description: Charging status of the session
+          type: string
+          enum:
+            - charging
+            - charge_suspended
+            - ending_charge
+            - end_charge
+        creation_date:
+          type: string
+          format: date-time
+          description: Creation date
+          example: 2017-10-15T16:44:40+0200
+        update_date:
+          type: string
+          format: date-time
+          description: Update date
+          example: 2017-10-15T17:53:04+0200
+        meter_start:
+          type: integer
+          description: Unix timestamp for meter start
+          example: 1541678196
+        meter_stop:
+          type: integer
+          description: Unix timestamp for meter stop
+          example: 1541678196
+        error_code:
+          type: string
+          description: Error code for faulty session
+          example: emc_timeout
+        error_message:
+          type: string
+          description: Error message for faulty session
+          example: Manually closed because of time out
+    DisplayText:
+      description: Translatable text
+      type: object
+      properties:
+        language:
+          type: string
+          description: '[ISO 639-1](https://en.wikipedia.org/wiki/List_of_ISO_639-1_codes) language code.'
+          example: de
+        text:
+          type: string
+    HttpError:
+      type: object
+      properties:
+        error_code:
+          type: string
+          description: The error code describing the error
+          example: validation_error
+        error_message:
+          type: string
+          description: The human readable error message describing the error
+          example: Provided data is not valid
+    KeyValue:
+      description: Key-value object
+      type: object
+      required:
+        - key
+        - value
+      properties:
+        key:
+          type: string
+          description: Key
+        value:
+          type: string
+          description: Value
+    Member:
+      type: object
+      properties:
+        id:
+          type: string
+        account:
+          $ref: '#/components/schemas/Account'
+        email:
+          type: string
+          format: email
+        status:
+          description: Invitation status
+          type: string
+          enum:
+            - pending
+            - active
+            - revoked
+            - terminated
+    OpeningHours:
+      type: object
+      properties:
+        label:
+          type: string
+          description: Arbitrary label to give the availability.
+          example: Mon-Fr 08:00-22:00, Sat-Sun CLOSED
+        open247:
+          type: boolean
+          description: Is available 24/7. If true, Monday - Sunday times will be ignored.
+          example: false
+        monday:
+          type: array
+          description: Start and end time pairs representing availability on Mondays.
+          example:
+            - - "0900"
+              - "1230"
+            - - "1330"
+              - "0000"
+          items:
+            type: array
+            items:
+              type: string
+        tuesday:
+          type: array
+          description: Start and end time pairs representing availability on Tuesdays.
+          example:
+            - - "0000"
+              - "0000"
+          items:
+            type: array
+            items:
+              type: string
+        wednesday:
+          type: array
+          description: Start and end time pairs representing availability on Wednesdays.
+          example:
+            - - "0900"
+              - "1230"
+            - - "1330"
+              - "0000"
+          items:
+            type: array
+            items:
+              type: string
+        thursday:
+          type: array
+          description: Start and end time pairs representing availability on Thursdays.
+          example:
+            - - "0000"
+              - "0000"
+          items:
+            type: array
+            items:
+              type: string
+        friday:
+          type: array
+          description: Start and end time pairs representing availability on Fridays.
+          example:
+            - - "0900"
+              - "1230"
+            - - "1330"
+              - "1645"
+            - - "1800"
+              - "0000"
+          items:
+            type: array
+            items:
+              type: string
+        saturday:
+          type: array
+          description: Start and end time pairs representing availability on Saturdays.
+          example:
+            - - "0000"
+              - "0000"
+          items:
+            type: array
+            items:
+              type: string
+        sunday:
+          type: array
+          description: Start and end time pairs representing availability on Sundays.
+          example: []
+          items:
+            type: array
+            items:
+              type: string
+        exceptionalOpenings:
+          type: object
+          properties: {}
+          description: Start and end time pairs representing availability on specific
+            dates. Dates in Y-m-d format. * can be used as year, month or day wildcards
+            to represent recurring dates.
+          example:
+            2020-12-24:
+              - - "0000"
+                - "0900"
+              - - "0930"
+                - "1300"
+            '*-12-25': []
+            '*-12-26': []
+    PaymentMethod:
+      description: Payment method for an account
+      type: object
+      properties:
+        id:
+          type: string
+          readOnly: true
+          example: 54e7c70d-fa97-11e7-b20f-00ffa96d3a77
+        status:
+          type: string
+          enum:
+            - ACTIVE
+            - INACTIVE
+            - BLOCKED
+          example: ACTIVE
+        processor:
+          type: string
+          description: Processor of the actual payment.
+          example: wirelane
+        type:
+          type: string
+          description: Type of the payment method.
+          example: visa
+        label:
+          type: string
+          description: Label for displaying payment information.
+          example: '"**** **** **** 1234" or "john.doe@example.com"'
+        metadata:
+          type: array
+          description: Metadata provided by the payment method type.
+          items:
+            $ref: '#/components/schemas/KeyValue'
+    Plan:
+      description: Plan model
+      type: object
+      properties:
+        id:
+          type: integer
+          example: 1
+          readOnly: true
+        plan_key:
+          type: string
+          description: Used as reference for the customer (on invoice for example)
+          example: wirelane_public_ac_01
+        name:
+          type: string
+          example: Wirelane Large
+        amount:
+          type: integer
+          description: Amount to be billed (in cent of the currency)
+          example: 100
+        currency:
+          description: '[ISO 4217](https://en.wikipedia.org/wiki/ISO_4217) currency code.'
+          type: string
+          enum:
+            - EUR
+            - CHF
+            - SEK
+            - ILS
+          example: EUR
+        interval_type:
+          type: string
+          enum:
+            - SECONDS
+            - MINUTES
+            - DAYS
+            - WEEKS
+            - MONTHS
+          description: The billing interval (period interval)
+        interval_count:
+          type: integer
+          example: 1
+          description: Cardinality of the interval type (for example 5 MINUTES)
+        properties:
+          type: object
+          example: { "seats": 5 }
+          description: JSON properties object
+        plan_group:
+          type: string
+          description: Can be used as selector for frontends
+          enum:
+            - PUBLIC
+            - PRIVATE
+          example: PUBLIC
+        default_tax_rate:
+          type: number
+          format: double
+          example: 19.0
+          description: The tax rate to be applied
+          default: 19.0
+        tax_rate_invoice_text:
+          type: array
+          items:
+            $ref: '#/components/schemas/DisplayText'
+        seat_active_min:
+          type: integer
+          description: Minimum amount of cards there must to order for this plan
+          example: 3
+        amount_seat_order:
+          type: integer
+          example: 1200
+          description: Cost of a seat order for a single seat (in euro cent)
+        amount_seat_recurrent:
+          type: integer
+          example: 1200
+          description: recurrent seat cost (in euro cent)
+        activation_date:
+          type: string
+          format: date-time
+          description: Activation date
+          example: 2015-11-25T10:43:02+0100
+        deactivation_date:
+          type: string
+          format: date-time
+          description: Deactivation date
+          example: 2017-10-25T06:55:44+0200
+        termination_date:
+          type: string
+          format: date-time
+          description: If set, then this plan has been terminated and no subscriptions will be extended after this date.
+          example: 2027-07-25T00:00:00+0200
+        service_levels:
+          type: array
+          items:
+            $ref: '#/components/schemas/PlanServiceLevel'
+        unlock_code:
+          type: string
+          pattern: '^[a-zA-Z0-9-_*.,;!@$]+$'
+          maxLength: 20
+          example: -Y0u_;et_@_d!$,Ou*t.
+        subscription_count:
+          type: integer
+          description: Subscription count of a plan.
+          default: 0
+    PlanServiceLevel:
+      description: Service level
+      type: object
+      properties:
+        id:
+          type: integer
+          example: 1
+          description: The service level id
+        key:
+          type: string
+          example: dewln_ac_01
+          description: The key of the service level
+        title:
+          type: string
+          example: Tariff for wirelane ac charging
+          description: The service level title
+        description:
+          type: string
+          example: 0,39 € per kWh + 0,03 € per Minute
+          description: The service level description
+        tariff:
+          type: string
+          example: DEWLN_AC_01
+          description: The key of the tariff there is related to the service level
+    PostalAddress:
+      allOf:
+        - $ref: '#/components/schemas/Address'
+        - type: object
+          properties:
+            name:
+              type: string
+              description: 'Name / address line #1, e.g. "John Doe" or "My Company"'
+              example: John Doe
+            description:
+              type: string
+              description: 'Description / address line #2, e.g. "Rear building" or "Finance Department"'
+              example: Rear building
+    Subscription:
+      type: object
+      properties:
+        id:
+          type: string
+          example: 3073b46e-1e17-4d9d-8485-1ebd9424f6b7
+        upcoming_subscription:
+          $ref: '#/components/schemas/UpcomingSubscription'
+        current_period:
+          $ref: '#/components/schemas/SubscriptionPeriod'
+        plan_key:
+          type: string
+          example: WIRELANE-ABO-ANNUEL-3
+        begin:
+          type: string
+          format: date-time
+          description: Begin date
+          example: 2015-11-25T10:43:02+0100
+        end:
+          type: string
+          format: date-time
+          description: End date
+          example: 2015-11-25T10:43:02+0100
+        account_id:
+          type: string
+          description: Id of the account
+          example: ABCD1234
+          readOnly: true
+    SubscriptionPeriod:
+      type: object
+      properties:
+        plan:
+          $ref: '#/components/schemas/Plan'
+        currency:
+          description: '[ISO 4217](https://en.wikipedia.org/wiki/ISO_4217) currency code.'
+          type: string
+          enum:
+            - EUR
+            - CHF
+            - SEK
+            - ILS
+          example: EUR
+        amount:
+          type: number
+        uid:
+          type: string
+          example: 3073b46e-1e17-4d9d-8485-1ebd9424f6b7
+        begin:
+          type: string
+          format: date-time
+          description: Begin date
+          example: 2015-11-25T10:43:02+0100
+        end:
+          type: string
+          format: date-time
+          description: End date
+          example: 2015-11-25T10:43:02+0100
+        quantity:
+          type: integer
+          default: 1
+          example: 1
+        tax_rate:
+          type: number
+          format: double
+          example: 19.0
+    UpcomingSubscription:
+      type: object
+      properties:
+        plan:
+          $ref: '#/components/schemas/Plan'
+        quantity:
+          type: integer
+        tax_rate:
+          type: number
+          format: double
   responses:
     400:
       description: Bad Request - Request is somehow wrong
@@ -1275,6 +1852,15 @@ components:
           schema:
             $ref: '#/components/schemas/HttpError'
   parameters:
+    accountIdParam:
+      name: accountId
+      in: path
+      description: Account ID
+      required: true
+      schema:
+        type: string
+        pattern: '^[a-zA-Z0-9-_]+$'
+        example: DEWLN-0123456789
     organizationIdParam:
       name: organizationId
       in: path
