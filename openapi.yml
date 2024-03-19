@@ -60,7 +60,7 @@ info:
     ## Host names for the endpoints
 
     Host names for the API
-    - Staging: api-staging.wirelane.com
+    - Staging: api.wirelane-staging.com
     - Production: api.wirelane.com
   contact:
     name: Wirelane GmbH
@@ -72,7 +72,7 @@ info:
     backgroundColor: "#151515"
     altText: "Wirelane"
 servers:
-- url: https://api-staging.wirelane.com/apis/emc
+- url: https://api.wirelane-staging.com/apis/emc
 security:
 - OAuth2Password:
   - account_admin
