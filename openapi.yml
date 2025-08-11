@@ -12,7 +12,7 @@ info:
 
     Retrieving a JWT access token on staging:
     ```
-    POST https://oauth-staging.emobilitycloud.com/token
+    POST https://oauth.emobilitycloud-staging.com/token
     Content-Type: application/x-www-form-urlencoded
     Accept: application/json
 
@@ -32,7 +32,7 @@ info:
 
     Retrieving a JWT access token on staging:
     ```
-    POST https://oauth-staging.emobilitycloud.com/token
+    POST https://oauth.emobilitycloud-staging.com/token
     Content-Type: application/x-www-form-urlencoded
     Accept: application/json
 
@@ -60,7 +60,7 @@ info:
     ## Host names for the endpoints
 
     Host names for the API
-    - Staging: api-staging.wirelane.com
+    - Staging: api.wirelane-staging.com
     - Production: api.wirelane.com
   contact:
     name: Wirelane GmbH
@@ -72,7 +72,10 @@ info:
     backgroundColor: "#151515"
     altText: "Wirelane"
 servers:
-- url: https://api-staging.wirelane.com/apis/emc
+- url: https://api.wirelane-staging.com/apis/emc
+  description: Staging server (uses test data)
+- url: https://api.wirelane.com/apis/emc
+  description: Production server (uses live data)
 security:
 - OAuth2Password:
   - account_admin
