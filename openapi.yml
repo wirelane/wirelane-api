@@ -451,133 +451,290 @@ paths:
               $ref: '#/components/headers/X-Total-Count'
         default:
           $ref: '#/components/responses/default'
+  /organizations/id/{organizationId}/tariffs:
+    get:
+      tags:
+        - Organizations Tariffs
+      summary: Get tariffs
+      operationId: findTariffsByOrganizationId
+      parameters:
+        - $ref: '#/components/parameters/organizationIdParam'
+        - name: types
+          in: query
+          description: |
+            Filter tariffs by tariff type.
+              * `marketplace`: Tariffs with type marketplace
+              * `customer`: Tariffs with type customer
+              * `member`: Tariffs with type member
+              * `contactless_payment`: Tariffs with type contactless_payment 
+              * `cpo_roaming`: Tariffs with type cpo_roaming
+              * `direct_charging_cpo`: Tariffs with type direct_charging_cpo
+              * `unregistered`: Tariffs with type direct_payment
+              * ``: All tariffs, irrespective of the flag values
+          required: false
+          schema:
+            type: array
+            items:
+              type: string
+              enum:
+                - marketplace
+                - customer
+                - member
+                - contactless_payment
+                - cpo_roaming
+                - direct_charging_cpo
+                - unregistered
+                - ''
+        - name: marketplace_ids
+          in: query
+          description: |
+            List of marketplace ids used to filter the tariffs.
+            Filter tariffs by the marketplaces where the customer or the marketplace tariff exists.
+          required: false
+          schema:
+            type: array
+            items:
+              type: integer
+        - name: roaming_provider
+          in: query
+          description: Filters the tariffs for their configured roaming provider.
+          required: false
+          schema:
+            type: string
+            enum:
+              - none
+              - hubject
+              - eclearing
+        - $ref: '#/components/parameters/pageNumberParam'
+        - $ref: '#/components/parameters/itemsPerPageParam'
+        - name: order_by
+          in: query
+          description: Name for sort
+          required: false
+          schema:
+            type: string
+            default: priority
+            enum:
+              - priority
+              - name
+              - active_from_date
+              - active_until_date
+        - $ref: '#/components/parameters/orderDirectionDescParam'
+        - name: status
+          in: query
+          description: Filters the tariffs for status
+          required: false
+          schema:
+            type: array
+            items:
+              type: string
+              enum:
+                - active
+                - inactive
+        - name: Accept-Language
+          in: header
+          description: '[Language tag](https://www.w3.org/International/articles/language-tags/)'
+          schema:
+            type: string
+            pattern: '^[a-zA-Z]{2}(-[a-zA-Z]{2})?'
+      responses:
+        200:
+          description: Return list of tariffs
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Tariff'
+          headers:
+            X-Total-Count:
+              $ref: '#/components/headers/X-Total-Count'
+        default:
+          $ref: '#/components/responses/default'
+  /organizations/id/{organizationId}/tariffs/id/{tariffId}:
+    get:
+      tags:
+        - Organizations Tariffs
+      summary: Get a specific tariff
+      operationId: findTariff
+      parameters:
+        - $ref: '#/components/parameters/organizationIdParam'
+        - $ref: '#/components/parameters/tariffIdParam'
+      responses:
+        200:
+          description: Return specific tariff
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Tariff'
+        default:
+          $ref: '#/components/responses/default'
+  /organizations/id/{organizationId}/tariffs/id/{tariffId}/prices/id/{priceModelId}:
+    get:
+      tags:
+        - Organizations Tariffs
+      summary: Get a specific price for a specific tariff
+      operationId: findTariffPrice
+      parameters:
+        - $ref: '#/components/parameters/organizationIdParam'
+        - $ref: '#/components/parameters/tariffIdParam'
+        - name: priceModelId
+          in: path
+          description: The price ID to search for
+          required: true
+          schema:
+            type: integer
+      responses:
+        200:
+          description: Return specific price model for a tariff
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PriceModel'
+        default:
+          $ref: '#/components/responses/default'
 components:
   schemas:
     Account:
+      description: The private account info.
+      allOf:
+        - $ref: '#/components/schemas/AccountInfo'
+        - type: object
+          properties:
+            billable:
+              description: Is the account free/billable. If `false` then invoices will not be billed will not sent during invoice run.
+              type: boolean
+              default: true
+              example: true
+              readOnly: true
+            created:
+              type: string
+              format: date-time
+              readOnly: true
+              description: Date when the account was created.
+            updated:
+              type: string
+              format: date-time
+              readOnly: true
+              description: Date when the account was updated.
+            authDate:
+              type: string
+              format: date-time
+              readOnly: true
+              description: Date when the account was last authenticated.
+            anonymized:
+              description: Flag indicating if the account data has been anonymized.
+              type: boolean
+              readOnly: true
+              example: false
+            blocked_reasons:
+              description: Reasons for account block
+              type: array
+              readOnly: true
+              items:
+                type: string
+                enum:
+                  - NO_ACTIVE_SUBSCRIPTION
+                  - UNPAID_INVOICE
+                  - MANUALLY_BLOCKED
+              example:
+                - UNPAID_INVOICE
+            blocked_manually_reason:
+              description: Custom block reason, if `MANUALLY_BLOCKED` is set.
+              type: string
+              readOnly: true
+              example: Customer violated the ToS.
+            transactional_invoicing:
+              description: Should the account be invoiced for each individual charging transaction.
+              type: boolean
+              default: false
+              example: true
+              readOnly: true
+    AccountInfo:
+      allOf:
+        - $ref: '#/components/schemas/AccountProfileData'
+        - type: object
+          description: The public account info.
+          properties:
+            account_id:
+              type: string
+              description: Account ID
+              pattern: '^[a-zA-Z0-9-_]+$'
+              example: DEWLN-0123456789
+              readOnly: true
+            tenant:
+              type: string
+              description: Tenant (EMP) of the account
+              readOnly: true
+              example: dewln
+            email:
+              type: string
+              format: email
+              description: Email address of the account
+              example: test@example.com
+              readOnly: true
+            status:
+              type: string
+              description: State of the account
+              readOnly: true
+              enum:
+                - ACTIVE
+                - INACTIVE
+                - BLOCKED
+                - PENDING
+            terminationRequested:
+              type: string
+              format: date-time
+              readOnly: true
+              description: Date when the account termination was requested.
+            terminationEffective:
+              type: string
+              format: date-time
+              readOnly: true
+              description: Date when the account termination will be effective.
+            terminationReason:
+              type: string
+              readOnly: true
+              description: Reason for termination of the account.
+    AccountProfileData:
       type: object
       properties:
-        account_id:
+        account_type:
           type: string
-          description: ID of the account
-          example: ABCD1234
-          readOnly: true
-        tenant:
+          description: |
+            Intended use of the account:
+              * `personal`: For private use
+              * `business`: For business use, enables `company_name` and `vat_number` for use in invoices
+          enum:
+            - personal
+            - business
+          default: personal
+          example: business
+        language:
+          description: '[ISO 639-1](https://en.wikipedia.org/wiki/List_of_ISO_639-1_codes) language code.'
           type: string
-          description: Tenant (EMP) of the account
-          example: dewln
-          readOnly: true
-        email:
+          pattern: '^[a-z]{2}$'
+          example: de
+          default: en
+        name:
           type: string
-          format: email
-          description: Email address of the account
-          example: test@example.com
+          description: Name
+          example: John Doe
+        address:
+          $ref: '#/components/schemas/PostalAddress'
         invoice_email_address:
           type: string
           format: email
           description: Additional email address to send invoices to
           example: invoices@example.com
-        first_name:
-          type: string
-          description: First name
-          example: John
-        last_name:
-          type: string
-          description: Last name
-          example: Doe
         company_name:
           type: string
-          description: Company name
+          description: Company name, only available for `account_type=business`
           example: Wirelane GmbH
         vat_number:
           type: string
-          description: VAT number of the company
+          description: VAT-ID, only available for `account_type=business`
           example: DE999999999
-        phone_number:
-          type: string
-          description: Phone number in +33 456789 format
-          pattern: '[+]?[0-9 ]+'
-          example: +33 4567 89
-        address:
-          $ref: '#/components/schemas/PostalAddress'
-        avatar_url:
-          type: string
-          readOnly: true
-          description: Url to the avatar image of the account
-        language:
-          type: string
-          description: '[ISO 639-1](https://en.wikipedia.org/wiki/List_of_ISO_639-1_codes) language code.'
-          example: en
-          pattern: '^[a-z]{2}$'
-        status:
-          type: string
-          description: State of the account
-          readOnly: true
-          enum:
-            - ACTIVE
-            - INACTIVE
-            - BLOCKED
-        salutation:
-          type: string
-          description: |
-            Salutation / title
-              * `Company`
-              * `Male`
-              * `Female`
-              * `Undefined`
-              * `Unknown`
-              * `Local authority`
-              * `unknown`: (deprecated)
-              * `undefined`: (deprecated)
-              * `mr`: (deprecated)
-              * `mrs`: (deprecated)
-              * `company`: (deprecated)
-              * `local_authority`: (deprecated)
-          default: Unknown
-        terminationRequested:
-          type: string
-          format: date-time
-          readOnly: true
-          description: Date when the account termination was requested.
-        terminationEffective:
-          type: string
-          format: date-time
-          readOnly: true
-          description: Date when the account termination will be effective.
-        terminationReason:
-          type: string
-          readOnly: true
-          description: Reason for termination of the account.
-        billable:
-          description: Is the account free/billable. If false then invoices will not be billed will not sent during invoice run.
-          type: boolean
-          default: true
-          example: true
-        created:
-          type: string
-          format: date-time
-          readOnly: true
-          description: Date when the account was created.
-        updated:
-          type: string
-          format: date-time
-          readOnly: true
-          description: Date when the account was updated.
-        anonymized:
-          description: Flag indicating if the account data has been anonymized.
-          type: boolean
-          readOnly: true
-          example: false
-        blocked_reasons:
-          description: Reasons for account block
-          type: array
-          readOnly: true
-          items:
-            type: string
-            enum:
-              - NO_ACTIVE_SUBSCRIPTION
-              - UNPAID_INVOICE
-          example:
-            - UNPAID_INVOICE
     Address:
       type: object
       required:
@@ -602,7 +759,7 @@ components:
           example: 12a
         zip_code:
           type: string
-          description: Zip code, e.g. "80539" for Munich (DE) or "3029 AD" for Rotterdam (NL)
+          description: Zip code, e.g. `80539` for Munich (DE) or `3029 AD` for Rotterdam (NL)
           example: '80539'
         city:
           type: string
@@ -772,7 +929,7 @@ components:
           example: WIRELANE-2500781
         emp:
           type: string
-          description: Name of the Emobility provider. [Deprecated]
+          description: '@deprecated: Name of the Emobility provider.'
           example: desgd
         cpo:
           type: string
@@ -843,14 +1000,14 @@ components:
         status:
           type: string
           description: |
-            Status of the points. If one point in the station hits the requested status the entire station is returned.  (Comma Separated List)
-              * FREE : Point is free.
-              * IN_USE :  Point is used by a card (might also be reserved).
-              * UNAVAILABLE : Point is unavailable right now. Might not be installed or broken.
-              * UNKNOWN : The point status is unknonwn.
-              * FAULTED : Point is faulted or temporary faulted.
-              * RESERVED : The point is reserved.
-              * CLOSED : The point status is closed (the point is not in use anymore).
+            Status of the points. If one point in the station hits the requested status the entire station is returned.
+              * `FREE`: Point is free.
+              * `IN_USE`: Point is used by a card (might also be reserved).
+              * `UNAVAILABLE`: Point is unavailable right now. Might not be installed or broken.
+              * `UNKNOWN`: The point status is unknown.
+              * `FAULTED`: Point is faulted or temporary faulted.
+              * `RESERVED`: The point is reserved.
+              * `CLOSED`: The point status is closed (the point is not in use anymore).
           enum:
             - FREE
             - IN_USE
@@ -924,8 +1081,7 @@ components:
           example: https://www.wirelane.com/laydepay
         charging_provider:
           type: string
-          description: If the charging point is using the Wirelane backend or a delegated
-            backend, use "emc".
+          description: If the charging point is using the Wirelane backend or a delegated backend, use `emc`.
           readOnly: true
           example: emc
         charging_group:
@@ -1750,6 +1906,26 @@ components:
                 - "1300"
             '*-12-25': []
             '*-12-26': []
+    OrganizationList:
+      description: White and blacklist of organizations, black wins over white.
+      type: object
+      properties:
+        blacklist:
+          description: Blacklisted organization IDs
+          type: array
+          items:
+            type: string
+            description: Tenant ID
+            example: dewln
+          readOnly: true
+        whitelist:
+          type: array
+          description: Whitelisted organization IDs
+          items:
+            type: string
+            description: Tenant ID
+            example: dewln
+          readOnly: true
     PaymentMethod:
       description: Payment method for an account
       type: object
@@ -1941,6 +2117,274 @@ components:
               type: string
               description: 'Description / address line #2, e.g. "Rear building" or "Finance Department"'
               example: Rear building
+    PriceModel:
+      description: Price model
+      type: object
+      properties:
+        id:
+          type: string
+          readOnly: true
+        price_id:
+          type: string
+          description: Price identifier
+          example: 663b5413b497c
+          readOnly: true
+        currency:
+          description: '[ISO 4217](https://en.wikipedia.org/wiki/ISO_4217) currency code.'
+          type: string
+          enum:
+            - EUR
+            - CHF
+            - SEK
+            - ILS
+          example: EUR
+        free:
+          type: boolean
+          example: true
+        point_groups:
+          type: array
+          description: Specific charging point groups of the organization. If none given all points of the organization are targeted.
+          items:
+            type: string
+            example: employees_reserved_points
+        rule:
+          type: string
+          readOnly: true
+          description: Rule for the rule engine, `true` by default
+          example: "poi['group_charging'] in ['SAINTCYR_REG_AC_01']"
+        tolerance_duration:
+          type: number
+          format: double
+          description: Minimum time amount (in seconds) connected to point of charge before charging connection fee
+          minimum: 0
+          example: 2
+        price_order_within_tariff:
+          type: integer
+          description: Order of price within parent tariff
+          minimum: 0
+          example: 1
+        connection_fee:
+          type: number
+          format: double
+          minimum: 0
+          example: 1.5
+        rounding_mode_time:
+          type: string
+          enum:
+            - UP
+            - EXACT
+            - DOWN
+          example: EXACT
+          description: How to round the time price components (round up, down or exact)
+        rounding_mode_energy:
+          type: string
+          enum:
+            - UP
+            - EXACT
+            - DOWN
+          example: EXACT
+          description: How to round the energy price components (round up, down or exact)
+        tariff_alt_url:
+          type: array
+          items:
+            $ref: '#/components/schemas/DisplayText'
+        tariff_alt_text:
+          type: array
+          items:
+            $ref: '#/components/schemas/DisplayText'
+        tax_rate:
+          type: number
+          format: double
+          minimum: 0.0
+          example: 19.0
+        tax_rate_invoice_text:
+          type: array
+          items:
+            $ref: '#/components/schemas/DisplayText'
+        active:
+          type: boolean
+        creation_date:
+          type: string
+          format: date-time
+          description: Creation date
+          example: 2015-11-25T10:43:02+0100
+          readOnly: true
+        update_date:
+          type: string
+          format: date-time
+          description: Update date
+          example: 2017-10-25T06:55:44+0200
+          readOnly: true
+        owner:
+          type: string
+          example: WIRELANE-2500781
+          readOnly: true
+        rule_cpos_allowed:
+          type: array
+          description: List of CPOs where this price is valid
+          items:
+            type: string
+          example:
+            - CPO1
+            - CPO3
+        rule_cpos_not_allowed:
+          type: array
+          description: List of CPOs where this price is not valid
+          items:
+            type: string
+          example:
+            - CPO2
+            - CPO4
+        rule_external_emps_allowed:
+          type: array
+          description: List of external EMP Provider IDs where this price is valid
+          items:
+            type: string
+          example:
+            - AT-VIE
+            - DEWLN
+        rule_pois_allowed:
+          type: array
+          description: List of charging point ids (evseids) where this price is valid
+          items:
+            type: string
+          example:
+            - DEWLN4400293
+            - DEWLN1100789
+        rule_pois_not_allowed:
+          type: array
+          description: List of charging point ids (evseids) where this price is not valid
+          items:
+            type: string
+          example:
+            - DEWLN2200293
+            - DEWLN3300789
+        rule_external_point_groups_allowed:
+          type: array
+          description: List of external point groups (defined by tenant) where this price is valid
+          items:
+            type: string
+          example:
+            - ROAMING
+        rule_external_point_groups_not_allowed:
+          type: array
+          description: List of external point groups (defined by tenant) where this price is not valid
+          items:
+            type: string
+          example:
+            - PARTNER_POIs
+        rule_charging_type:
+          description: The charging type where this tariff is valid
+          type: string
+          enum:
+            - AC
+            - DC
+          example: AC
+        pricing_template_id:
+          description: |
+            When creating or saving a PriceModel, either use `pricing_template_id` to create a pricing model based on a template, or `elements`.
+            If both are given, the template takes precedence.
+            When retrieving, this field is returned when the pricing is based on a template, and skipped otherwise.
+            Elements will be returned in either case on retrieving.
+          type: string
+        elements:
+          description: |
+            When creating or saving a PriceModel, either use `pricing_template_id` to create a pricing model based on a template, or `elements`.
+            If both are given, the template takes precedence.
+            When retrieving, this field is returned when the pricing is based on a template, and skipped otherwise.
+            Elements will be returned in either case on retrieving.
+          type: array
+          items:
+            $ref: '#/components/schemas/PriceModelElement'
+        autoDescription:
+          description: Autogenerated Description of the price components and restriction
+          type: array
+          items:
+            $ref: '#/components/schemas/DisplayText'
+    PriceModelComponent:
+      description: Price Model component
+      type: object
+      properties:
+        type:
+          type: string
+          enum:
+            - ENERGY
+            - PARKING_TIME
+            - TIME
+        price:
+          type: number
+          format: double
+          minimum: 0
+        step_size:
+          type: integer
+          minimum: 0
+    PriceModelElement:
+      description: Price model element
+      type: object
+      properties:
+        price_components:
+          type: array
+          items:
+            $ref: '#/components/schemas/PriceModelComponent'
+        restrictions:
+          type: array
+          items:
+            $ref: '#/components/schemas/PriceModelRestriction'
+    PriceModelRestriction:
+      description: Price Model restrictions
+      type: object
+      properties:
+        start_time:
+          type: string
+          pattern: '^(2[0-3]|[01][0-9]):([0-5][0-9])$'
+          example: '07:00'
+        end_time:
+          type: string
+          pattern: '^(2[0-3]|[01][0-9]):([0-5][0-9])$'
+          example: '20:30'
+        start_date:
+          type: string
+          pattern: '^([12]\d{3}-(0[1-9]|1[0-2])-(0[1-9]|[12]\d|3[01]))$'
+        end_date:
+          type: string
+          pattern: '^([12]\d{3}-(0[1-9]|1[0-2])-(0[1-9]|[12]\d|3[01]))$'
+        min_kwh:
+          type: number
+          format: double
+          minimum: 0
+        max_kwh:
+          type: number
+          format: double
+          minimum: 0
+        min_duration:
+          type: integer
+          minimum: 0
+        max_duration:
+          type: integer
+          minimum: 0
+        min_price:
+          type: number
+          format: double
+          minimum: 0
+        max_price:
+          type: number
+          format: double
+          minimum: 0
+        day_of_week:
+          type: array
+          items:
+            type: string
+            enum:
+              - MONDAY
+              - TUESDAY
+              - WEDNESDAY
+              - THURSDAY
+              - FRIDAY
+              - SATURDAY
+              - SUNDAY
+          example:
+            - WEDNESDAY
+            - THURSDAY
     Subscription:
       type: object
       properties:
@@ -2006,6 +2450,158 @@ components:
           type: number
           format: double
           example: 19.0
+    Tariff:
+      description: Compilation of requirements needed to allow charging on this point
+      type: object
+      required:
+        - name
+        - priority
+      properties:
+        id:
+          type: integer
+          description: Unique ID of the tariff
+          example: 1002
+          readOnly: true
+        tariff_id:
+          type: string
+          description: Tariff identifier
+          example: dewln-1111991
+          readOnly: true
+        tenant:
+          type: string
+          description: The tenant of the tariff
+          readOnly: true
+          example: dewln
+        name:
+          type: array
+          items:
+            $ref: '#/components/schemas/DisplayText'
+          example: [ { "language": "en", "text": "Wirelane employees" }, { "language": "de", "text": "Wirelane Mitarbeiter" } ]
+        priority:
+          type: integer
+          description: |
+            It prioritizes the tariff - highest priority will show up to the user and in case of equality, newest tariff wins.
+            Prioritization happens within separate buckets:
+              * First bucket - all tariffs with values in marketplace_ids, `for_member = true`; sorted by their priorities
+              * Second bucket - all legacy tariffs (`for_marketplace = false`, `for_customer = false`, `for_member = false`); sorted by their priorities
+              * Third bucket - all tariffs with `for_customer = true`, sorted by their priorities
+              * Fourth bucket - all tariffs with values in marketplace_ids and `for_marketplace = true`, sorted by their priorities
+          example: 200
+          minimum: 0
+        creation_date:
+          type: string
+          format: date-time
+          description: Creation date
+          example: 2015-11-25T10:43:02+0100
+          readOnly: true
+        update_date:
+          type: string
+          format: date-time
+          description: Update date
+          example: 2017-10-25T06:55:44+0200
+          readOnly: true
+        active_from_date:
+          type: string
+          format: date-time
+          description: Active from date
+          example: 2018-07-25T00:00:00+0200
+        active_until_date:
+          type: string
+          format: date-time
+          description: Active until date
+          example: 2027-07-25T00:00:00+0200
+        tariff_type:
+          type: string
+          description: The type of this tariff
+          enum:
+            - customer
+            - member
+            - marketplace
+            - cpo_roaming
+            - direct_payment
+            - contactless_payment
+            - direct_charging_cpo
+        roaming_platform:
+          type: string
+          description: |
+            If set, then this tariff is aimed towards a specific roaming platform.
+            Set to `none` for regular tariffs with no roaming-attachment.
+            Skipping this value / nulling it will not change the value or default to `none`
+          enum:
+            - none
+            - hubject
+            - eclearing
+        for_unregistered_customers:
+          type: boolean
+          description: True if this tariff is for customers which are not registered with an EMP. Obsolete.
+          default: false
+          example: false
+        for_marketplace:
+          type: boolean
+          description: True will trade this tariff in the marketplace (if owner is allowed to sell). Obsolete.
+          example: true
+        for_customer:
+          type: boolean
+          description: True will show this tariff to owner's direct customers. Obsolete.
+          example: false
+        for_member:
+          type: boolean
+          description: True will show this tariff only to customers that are members of the organization owning the tariff. Obsolete.
+          example: false
+        marketplace_ids:
+          type: array
+          items:
+            type: integer
+            example: 1
+          description: |
+            The IDs or the marketplaces where the tariff can be traded.
+              * If `for_marketplace` is `true`, then this has the IDs of marketplaces where other organizations can buy this tariff and show to their own
+              customers
+              * If `for_member` is `true`, then this has the IDs of marketplaces where the organization and its EMPs (customer manager organizations) are
+              part of. The organization must have already marked which are its EMPs in that marketplaces.
+        member_groups:
+          type: array
+          description: Member groups, valid only when for_members is true and the tariff is in a marketplace (has ids in marketplace_ids)
+          items:
+            type: string
+            example: employees_of_department_A
+        organization_eligibility_list:
+          $ref: '#/components/schemas/OrganizationList'
+        reservation_duration:
+          type: integer
+          description: |
+            Duration of reservation when using this tariff for a POI.
+              * If `0`, the current tariff is for a POI not supporting reservations
+              * Any value greater than `0`, the customers can reserve the POI for this amount of minutes
+          minimum: 0
+          example: 30
+        authorization_url:
+          type: string
+          readOnly: true
+          description: If tariff is for unregistered customers, this url is used to authorize and get payment info
+          example: https://www.wirelane.com/directpayment
+        plans:
+          type: array
+          description: A list of plan key / plan name pairs for plans associated to this tariff
+          items:
+            type: object
+            required:
+              - plan_key
+            properties:
+              plan_key:
+                type: string
+              plan_name:
+                type: string
+            example: { "plan_key": "wirelane_public_ac_01", "plan_name": "Wirelane Public AC plan" }
+        prices:
+          type: array
+          description: Prices to extend the default price
+          items:
+            $ref: '#/components/schemas/PriceModel'
+        active:
+          description: Check if the tariff is active
+          type: boolean
+          default: true
     UpcomingSubscription:
       type: object
       properties:
@@ -2499,6 +3095,13 @@ components:
       schema:
         type: string
         pattern: '^[0-9]{1,3}-[0-9]{1,3}$'
+    tariffIdParam:
+      name: tariffId
+      in: path
+      description: The tariff ID to search for
+      required: true
+      schema:
+        type: integer
   headers:
     X-Total-Count:
       description: Total number of items
