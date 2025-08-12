@@ -62,7 +62,11 @@ info:
 
     ## Host names for the endpoints
 
-    Host names for the API
+    OAuth host names
+    - Staging: `oauth.emobilitycloud-staging.com`
+    - Production: `oauth.emobilitycloud.com`
+
+    API host names
     - Staging: `api.wirelane-staging.com`
     - Production: `api.wirelane.com`
   contact:
@@ -80,8 +84,7 @@ servers:
 - url: https://api.wirelane.com/apis/emc
   description: Production server (uses live data)
 security:
-- OAuth2Password:
-  - account_admin
+- OAuth2Password: {}
 paths:
   /organizations/id/{organizationId}/members:
     get:
