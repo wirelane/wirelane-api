@@ -2317,14 +2317,14 @@ components:
       type: oauth2
       flows:
         password:
-          tokenUrl: https://oauth-staging.emobilitycloud.com/token
-          scopes:
-            account_admin: Account Admin
+          tokenUrl: https://oauth.emobilitycloud-staging.com/token
+          refreshUrl: https://oauth.emobilitycloud-staging.com/token
+          scopes: {}
     OAuth2ClientCredential:
       type: oauth2
       flows:
         clientCredentials:
-          tokenUrl: https://oauth-staging.emobilitycloud.com/token
+          tokenUrl: https://oauth.emobilitycloud-staging.com/token
           scopes:
             account: Account function
 x-webhooks:
