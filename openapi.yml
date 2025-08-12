@@ -1328,16 +1328,14 @@ components:
             - private
         accessibility_location_type:
           description: |
-            **the below table defines the possible values for the accessibility location type**
-            | **Value**               | Description                                                                             |
-            |-------------------------|-----------------------------------------------------------------------------------------|
-            | **on-street**           | parking in public space                                                                 |
-            | **parking-garage**      | multistorey car park                                                                    |
-            | **underground-garage**  | multistorey car park, mainly underground                                                |
-            | **parking-lot**         | a cleared area that is intended for parking vehicles, i.e. at super markets, bars, etc. |
-            | **private**             | located in private or corporate grounds, may not be accessible to the public            |
-            | **other**               | other then the given possibilities                                                      |
-            | **unknown**             | parking location type is not known by the operator                                      |
+            Accessibility location type
+            * `on-street`: parking in public space
+            * `parking-garage`: multistory car park
+            * `underground-garage`: multistory car park, mainly underground
+            * `parking-lot`: a cleared area that is intended for parking vehicles, i.e. at super markets, bars, etc.
+            * `private`: located in private or corporate grounds, may not be accessible to the public
+            * `other`: other then the given possibilities
+            * `unknown`: parking location type is not known by the operator
           type: string
           enum:
             - on-street
