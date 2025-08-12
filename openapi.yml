@@ -84,7 +84,8 @@ servers:
 - url: https://api.wirelane.com/apis/emc
   description: Production server (uses live data)
 security:
-- OAuth2Password: {}
+- OAuth2Password:
+  - admin
 paths:
   /organizations/id/{organizationId}/members:
     get:
@@ -2322,14 +2323,17 @@ components:
         password:
           tokenUrl: https://oauth.emobilitycloud-staging.com/token
           refreshUrl: https://oauth.emobilitycloud-staging.com/token
-          scopes: {}
+          scopes:
+            admin: All admin functions the user has access to
     OAuth2ClientCredential:
       type: oauth2
       flows:
         clientCredentials:
           tokenUrl: https://oauth.emobilitycloud-staging.com/token
           scopes:
-            account: Account function
+            account: Account registration
+            domains: Domain lookup
+            pois_search: POI search
 x-webhooks:
   organization-event:
     post:
