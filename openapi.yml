@@ -6,61 +6,11 @@ info:
 
     To use this API, a `client_id` and `client_secret` is needed. Please contact our support to receive one for your app.
 
-    There are two kinds of endpoints: endpoints that are accessible without having an user account on the Wirelane platform, and endpoints that are accessible without. Both need a `client_id` and `client_secret`.
+    There are two kinds of endpoints:
+    - endpoints that are accessible without having an Wirelane user account, these use the `OAuth2ClientCredential` security scheme.
+    - endpoints that are only available to Wirelane user accounts, these use the `OAuth2Password` security scheme.
 
-    ## Authenticated endpoints (OAuth2Password)
-
-    Retrieving a JWT access token on staging:
-    ```
-    POST https://oauth.emobilitycloud-staging.com/token
-    Content-Type: application/x-www-form-urlencoded
-    Accept: application/json
-
-    grant_type=password&client_id=...&client_secret=...&username=...&password=...
-    ```
-    
-    Retrieving a JWT access token on production:
-    ```
-    POST https://oauth.emobilitycloud.com/token
-    Content-Type: application/x-www-form-urlencoded
-    Accept: application/json
-
-    grant_type=password&client_id=...&client_secret=...&username=...&password=...
-    ```
-    
-    From the returned JSON, take the value of `access_token` and use it in the API requests.
-
-    ## Unauthenticated endpoints (OAuth2ClientCredential)
-
-    Retrieving a JWT access token on staging:
-    ```
-    POST https://oauth.emobilitycloud-staging.com/token
-    Content-Type: application/x-www-form-urlencoded
-    Accept: application/json
-
-    grant_type=client_credentials&client_id=...&client_secret=...&scope=account
-    ```
-    
-    Retrieving a JWT access token on production:
-    ```
-    POST https://oauth.emobilitycloud.com/token
-    Content-Type: application/x-www-form-urlencoded
-    Accept: application/json
-
-    grant_type=client_credentials&client_id=...&client_secret=...&scope=account
-    ```
-    
-    From the returned JSON, take the value of `access_token` and use it in the API requests.
-    
-    ## Using the access token
-
-    The `access_token` property from the authentication request needs to be provided as authorization header to the requests:
-    ```
-    Accept: application/json
-    Authorization: Bearer $access_token
-    ```
-
-    ## Host names for the endpoints
+    ### Host names for the endpoints
 
     OAuth host names
     - Staging: `oauth.emobilitycloud-staging.com`
@@ -69,6 +19,37 @@ info:
     API host names
     - Staging: `api.wirelane-staging.com`
     - Production: `api.wirelane.com`
+
+    ## OAuth
+    
+    ### Public endpoints (`OAuth2ClientCredential`)
+
+    Retrieving a JWT access token:
+    ```
+    POST https://${oauth_host_name}/token
+    Content-Type: application/x-www-form-urlencoded
+    Accept: application/json
+
+    grant_type=client_credentials&client_id=...&client_secret=...&scope=account
+    ```
+
+    ### Authenticated endpoints (`OAuth2Password`)
+
+    Retrieving a JWT access token:
+    ```
+    POST https://${oauth_host_name}/token
+    Content-Type: application/x-www-form-urlencoded
+    Accept: application/json
+
+    grant_type=password&client_id=...&client_secret=...&username=...&password=...
+    ```
+    
+    ### Using the access token
+
+    The `access_token` property from the response to the authentication request needs to be provided as authorization header to the requests:
+    ```
+    Authorization: Bearer ${access_token}
+    ```
   contact:
     name: Wirelane GmbH
     url: https://www.wirelane.com
