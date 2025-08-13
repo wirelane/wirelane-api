@@ -1292,12 +1292,24 @@ components:
           readOnly: true
         plug_type:
           type: string
-          enum: *plugTypeEnumValues
+          enum:
+            - TYPE_1
+            - TYPE_1_ATCH
+            - TYPE_2
+            - TYPE_2_ATCH
+            - TYPE_3
+            - TYPE_3_ATCH
+            - CHADEMO
+            - CCS
+            - SCHUKO
+            - UNKNOWN
           example: TYPE_2
           readOnly: true
         charging_type:
           type: string
-          enum: *chargingTypeEnumValues
+          enum:
+            - AC
+            - DC
           readOnly: true
         address:
           $ref: '#/components/schemas/Address'
