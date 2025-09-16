@@ -3230,10 +3230,11 @@ components:
       in: query
       description: Membergroup IDs
       required: false
-      type: array
-      items:
-        type: string
-        pattern: '^[a-zA-Z0-9-_]+$'
+      schema:
+        type: array
+        items:
+          type: string
+          pattern: '^[a-zA-Z0-9-_]+$'
     memberStatusParam:
       name: member_status
       description: |
@@ -3244,33 +3245,36 @@ components:
           * `terminated`: Membership has been terminated by the user or organization
       in: query
       required: false
-      type: array
-      items:
-        type: string
-        enum:
-          - pending
-          - active
-          - revoked
-          - terminated
+      schema:
+        type: array
+        items:
+          type: string
+          enum:
+            - pending
+            - active
+            - revoked
+            - terminated
     accountStatusParam:
       name: account_status
       in: query
       required: false
-      type: array
-      items:
-        type: string
-        enum:
-          - ACTIVE
-          - INACTIVE
-          - BLOCKED
-          - PENDING
+      schema:
+        type: array
+        items:
+          type: string
+          enum:
+            - ACTIVE
+            - INACTIVE
+            - BLOCKED
+            - PENDING
     scmIdParam:
       name: scmId
       in: path
       description: The Scm-ID of the connector. See `Connector.scm_id`
       required: true
-      type: string
-      pattern: '^[a-zA-Z0-9]+$'
+      schema:
+        type: string
+        pattern: '^[a-zA-Z0-9]+$'
   headers:
     X-Total-Count:
       description: Total number of items
