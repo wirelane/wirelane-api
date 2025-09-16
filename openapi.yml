@@ -439,6 +439,25 @@ paths:
                   $ref: '#/components/schemas/ConnectionChainItem'
         default:
           $ref: '#/components/responses/default'
+  /organizations/id/{organizationId}/stations/id/{stationId}/connectors/id/{scmId}/remote_control/unlock_connector:
+    post:
+      tags:
+        - Organizations Charging Stations Remote Control
+      summary: Requests a connector unlock on the charging station connector.
+      operationId: organizationsChargingStationUnlockConnector
+      parameters:
+        - $ref: '#/components/parameters/organizationIdParam'
+        - $ref: '#/components/parameters/stationIdParam'
+        - $ref: '#/components/parameters/scmIdParam'
+      responses:
+        200:
+          description: Returns the created RemoteControlUnlockConnector Resource
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RemoteControlUnlockConnector'
+        default:
+          $ref: '#/components/responses/default'
   /organizations/id/{organizationId}/stations/id/{stationId}/maintenance:
     get:
       tags:
@@ -465,6 +484,29 @@ paths:
           headers:
             X-Total-Count:
               $ref: '#/components/headers/X-Total-Count'
+        default:
+          $ref: '#/components/responses/default'
+  /organizations/id/{organizationId}/stations/id/{stationId}/remote_control/reset:
+    post:
+      tags:
+        - Organizations Charging Stations Remote Control
+      summary: Requests a reset of the charging station.
+      operationId: organizationsChargingStationReset
+      parameters:
+        - $ref: '#/components/parameters/organizationIdParam'
+        - $ref: '#/components/parameters/stationIdParam'
+        - in: body
+          name: body
+          required: true
+          schema:
+            $ref: '#/components/schemas/RemoteControlResetRequest'
+      responses:
+        200:
+          description: Returns the created RemoteControlReset Resource
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RemoteControlReset'
         default:
           $ref: '#/components/responses/default'
   /organizations/id/{organizationId}/tariffs:
@@ -2439,6 +2481,68 @@ components:
           example:
             - WEDNESDAY
             - THURSDAY
+    RemoteControlActionBase:
+      type: object
+      required:
+        - evse
+      properties:
+        connector_id:
+          minimum: 0
+          exclusiveMinimum: true
+          type: integer
+          readOnly: true
+        message_id:
+          readOnly: true
+          type: string
+        evse:
+          type: string
+          format: iri-reference
+          readOnly: true
+        message_pair:
+          type: string
+          format: iri-reference
+          readOnly: true
+        id:
+          type: string
+          readOnly: true
+        creation_date:
+          type: string
+          format: date-time
+          readOnly: true
+        action:
+          type: string
+          readOnly: true
+        error_status:
+          type: boolean
+          readOnly: true
+    RemoteControlUnlockConnector:
+      allOf:
+        - $ref: '#/components/schemas/RemoteControlActionBase'
+    RemoteControlReset:
+      allOf:
+        - $ref: '#/components/schemas/RemoteControlActionBase'
+        - type: object
+          required:
+            - type
+          properties:
+            type:
+              type: string
+              enum:
+                - Hard
+                - Soft
+              description: This contains the type of reset that the Charge Point should perform.
+              readOnly: true
+    RemoteControlResetRequest:
+      type: object
+      required:
+        - type
+      properties:
+        type:
+          type: string
+          enum:
+            - Hard
+            - Soft
+          description: This contains the type of reset that the Charge Point should perform.
     Subscription:
       type: object
       properties:
@@ -3160,6 +3264,13 @@ components:
           - INACTIVE
           - BLOCKED
           - PENDING
+    scmIdParam:
+      name: scmId
+      in: path
+      description: The Scm-ID of the connector. See `Connector.scm_id`
+      required: true
+      type: string
+      pattern: '^[a-zA-Z0-9]+$'
   headers:
     X-Total-Count:
       description: Total number of items
