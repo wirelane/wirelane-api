@@ -495,11 +495,12 @@ paths:
       parameters:
         - $ref: '#/components/parameters/organizationIdParam'
         - $ref: '#/components/parameters/stationIdParam'
-        - in: body
-          name: body
-          required: true
-          schema:
-            $ref: '#/components/schemas/RemoteControlResetRequest'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/RemoteControlResetRequest'
       responses:
         200:
           description: Returns the created RemoteControlReset Resource
