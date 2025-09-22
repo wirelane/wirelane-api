@@ -175,6 +175,34 @@ paths:
                 $ref: '#/components/schemas/Subscription'
         default:
           $ref: '#/components/responses/default'
+  /organizations/id/{organizationId}/point_groups/id/{groupId}/tariffs:
+    get:
+      tags:
+        - Organizations Tariffs
+      summary: Get charge point group tariffs
+      operationId: listOrganizationPointGroupTariffs
+      parameters:
+        - $ref: '#/components/parameters/organizationIdParam'
+        - $ref: '#/components/parameters/groupIdParam'
+        - $ref: '#/components/parameters/pageNumberParam'
+        - $ref: '#/components/parameters/itemsPerPageParam'
+        - $ref: '#/components/parameters/tariffStatusParam'
+        - $ref: '#/components/parameters/tariffOrderByParam'
+        - $ref: '#/components/parameters/orderDirectionDescParam'
+      responses:
+        200:
+          description: Return list of tariffs
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Tariff'
+          headers:
+            X-Total-Count:
+              $ref: '#/components/headers/X-Total-Count'
+        default:
+          $ref: '#/components/responses/default'
   /organizations/id/{organizationId}/sessions:
     get:
       tags:
@@ -3276,6 +3304,39 @@ components:
       schema:
         type: string
         pattern: '^[a-zA-Z0-9]+$'
+    groupIdParam:
+      name: groupId
+      in: path
+      description: The ID to search for
+      required: true
+      schema:
+        type: integer
+    tariffStatusParam:
+      name: status
+      in: query
+      description: Filters the tariffs for status
+      required: false
+      schema:
+        type: array
+        items:
+          type: string
+          enum:
+            - active
+            - inactive
+    tariffOrderByParam:
+      name: order_by
+      in: query
+      description: Name for sort
+      required: false
+      schema:
+        default: priority
+        type: string
+        enum:
+          - name
+          - priority
+          - active_from_date
+          - active_until_date
+          - tariff_type
   headers:
     X-Total-Count:
       description: Total number of items
