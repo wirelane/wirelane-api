@@ -550,28 +550,26 @@ paths:
           in: query
           description: |
             Filter tariffs by tariff type.
-              * `marketplace`: Tariffs with type marketplace
-              * `customer`: Tariffs with type customer
-              * `member`: Tariffs with type member
-              * `contactless_payment`: Tariffs with type contactless_payment 
-              * `cpo_roaming`: Tariffs with type cpo_roaming
-              * `direct_charging_cpo`: Tariffs with type direct_charging_cpo
-              * `unregistered`: Tariffs with type direct_payment
-              * ``: All tariffs, irrespective of the flag values
+            * `customer`: For registered customers via App or RFID authorization.
+            * `member`: For registered members of an CPO.
+            * `marketplace`: Marketplace offered between CPOs.
+            * `cpo_roaming`: CPO Roaming tariff provided to the roaming partners.
+            * `unregistered`: Ad-hoc payment via direct payment page. (`direct_payment` in `Tariff.tariff_type`)
+            * `contactless_payment`: Ad-hoc payment via payment terminal.
+            * `direct_charging_cpo`: Ad-hoc payment via direct payment page of the CPO.
           required: false
           schema:
             type: array
             items:
               type: string
               enum:
-                - marketplace
                 - customer
                 - member
-                - contactless_payment
+                - marketplace
                 - cpo_roaming
-                - direct_charging_cpo
                 - unregistered
-                - ''
+                - contactless_payment
+                - direct_charging_cpo
         - name: marketplace_ids
           in: query
           description: |
@@ -2699,7 +2697,15 @@ components:
           example: 2027-07-25T00:00:00+0200
         tariff_type:
           type: string
-          description: The type of this tariff
+          description: |
+            The type of this tariff.
+            * `customer`: For registered customers via App or RFID authorization.
+            * `member`: For registered members of an CPO.
+            * `marketplace`: Marketplace offered between CPOs.
+            * `cpo_roaming`: CPO Roaming tariff provided to the roaming partners.
+            * `direct_payment`: Ad-hoc payment via direct payment page.
+            * `contactless_payment`: Ad-hoc payment via payment terminal.
+            * `direct_charging_cpo`: Ad-hoc payment via direct payment page of the CPO.
           enum:
             - customer
             - member
