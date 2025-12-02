@@ -477,15 +477,15 @@ paths:
       x-authentication-roles: ORGA_ROLE_CHARGING_STATIONS_VIEW
       operationId: listOrganizationChargingStationConnectorOcppLogs
       parameters:
-        - $ref: '#/parameters/organizationIdParam'
-        - $ref: '#/parameters/stationIdParam'
-        - $ref: '#/parameters/scmIdParam'
-        - $ref: '#/parameters/pageNumberParam'
-        - $ref: '#/parameters/itemsPerPageParam'
-        - $ref: '#/parameters/datePickerSinceRequiredParam'
-        - $ref: '#/parameters/datePickerUntilRequiredParam'
-        - $ref: '#/parameters/ocppMessagePairTypesParam'
-        - $ref: '#/parameters/ocppMessagePairStatusParam'
+        - $ref: '#/components/parameters/organizationIdParam'
+        - $ref: '#/components/parameters/stationIdParam'
+        - $ref: '#/components/parameters/scmIdParam'
+        - $ref: '#/components/parameters/pageNumberParam'
+        - $ref: '#/components/parameters/itemsPerPageParam'
+        - $ref: '#/components/parameters/datePickerSinceRequiredParam'
+        - $ref: '#/components/parameters/datePickerUntilRequiredParam'
+        - $ref: '#/components/parameters/ocppMessagePairTypesParam'
+        - $ref: '#/components/parameters/ocppMessagePairStatusParam'
       responses:
         200:
           description: Charging Stations OCPP Logs For Specific Connector
@@ -494,7 +494,7 @@ paths:
               schema:
                 type: array
                 items:
-                  $ref: '#/definitions/ChargingStationOcppLog'
+                  $ref: '#/components/schemas/ChargingStationOcppLog'
           headers:
             X-Total-Count:
               $ref: '#/components/headers/X-Total-Count'
