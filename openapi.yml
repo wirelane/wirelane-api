@@ -562,7 +562,7 @@ paths:
   /organizations/id/{organizationId}/stations/id/{stationId}/ocpp_logs:
     get:
       tags:
-        - Organizations Charging Stations
+        - Organizations Charging Stations OCPP Logs
       summary: Retrieve OCPP Logs for a specific charging station (connector 0)
       description: |
         Get OCPP logs for a single charging station
