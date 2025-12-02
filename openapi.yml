@@ -441,7 +441,7 @@ paths:
               schema:
                 type: array
                 items:
-                  $ref: '#/components/schemas/Case'
+                  $ref: '#/components/schemas/SalesforceCase'
           headers:
             X-Total-Count:
               $ref: '#/components/headers/X-Total-Count'
@@ -467,6 +467,51 @@ paths:
                   $ref: '#/components/schemas/ConnectionChainItem'
         default:
           $ref: '#/components/responses/default'
+  /organizations/id/{organizationId}/stations/id/{stationId}/connectors/id/{scmId}/ocpp_logs:
+    get:
+      tags:
+        - Organizations Charging Stations OCPP Logs
+      summary: Retrieve OCPP Logs for a specific connector
+      description: |
+        Get OCPP logs for a single connector
+      x-authentication-roles: ORGA_ROLE_CHARGING_STATIONS_VIEW
+      operationId: listOrganizationChargingStationConnectorOcppLogs
+      parameters:
+        - $ref: '#/parameters/organizationIdParam'
+        - $ref: '#/parameters/stationIdParam'
+        - $ref: '#/parameters/scmIdParam'
+        - $ref: '#/parameters/pageNumberParam'
+        - $ref: '#/parameters/itemsPerPageParam'
+        - $ref: '#/parameters/datePickerSinceRequiredParam'
+        - $ref: '#/parameters/datePickerUntilRequiredParam'
+        - $ref: '#/parameters/ocppMessagePairTypesParam'
+        - $ref: '#/parameters/ocppMessagePairStatusParam'
+      responses:
+        200:
+          description: Charging Stations OCPP Logs For Specific Connector
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/definitions/ChargingStationOcppLog'
+          headers:
+            X-Total-Count:
+              $ref: '#/components/headers/X-Total-Count'
+            X-Total-Pages:
+              description: Total number of pages
+              schema:
+                type: integer
+            X-Per-Page:
+              description: Number of items per page
+              schema:
+                type: integer
+            X-Page:
+              description: Current page
+              schema:
+                type: integer
+        default:
+          $ref: '#/responses/default'
   /organizations/id/{organizationId}/stations/id/{stationId}/connectors/id/{scmId}/remote_control/unlock_connector:
     post:
       tags:
@@ -509,6 +554,37 @@ paths:
                 type: array
                 items:
                   $ref: '#/components/schemas/ChargingStationMaintenance'
+          headers:
+            X-Total-Count:
+              $ref: '#/components/headers/X-Total-Count'
+        default:
+          $ref: '#/components/responses/default'
+  /organizations/id/{organizationId}/stations/id/{stationId}/ocpp_logs:
+    get:
+      tags:
+        - Organizations Charging Stations
+      summary: Retrieve OCPP Logs for a specific charging station (connector 0)
+      description: |
+        Get OCPP logs for a single charging station
+      operationId: listOrganizationChargingStationOcppLogs
+      parameters:
+        - $ref: '#/components/parameters/organizationIdParam'
+        - $ref: '#/components/parameters/stationIdParam'
+        - $ref: '#/components/parameters/pageNumberParam'
+        - $ref: '#/components/parameters/itemsPerPageParam'
+        - $ref: '#/components/parameters/datePickerSinceRequiredParam'
+        - $ref: '#/components/parameters/datePickerUntilRequiredParam'
+        - $ref: '#/components/parameters/ocppMessagePairTypesParam'
+        - $ref: '#/components/parameters/ocppMessagePairStatusParam'
+      responses:
+        200:
+          description: Return all Charging Stations OCPP Logs for the station with the specific stationId from the route
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/ChargingStationOcppLog'
           headers:
             X-Total-Count:
               $ref: '#/components/headers/X-Total-Count'
@@ -942,7 +1018,7 @@ components:
           readOnly: true
           type: string
           description: JSON encoded data
-    Case:
+    SalesforceCase:
       description: Representation of a Salesforce Case
       type: object
       properties:
@@ -1597,6 +1673,96 @@ components:
           format: date-time
           readOnly: true
           description: Actual end of the maintenance window (date-time)
+    ChargingStationOcppLog:
+      description: Single Charging Station OCPP Log Entry
+      properties:
+        id:
+          type: string
+          pattern: '^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$'
+          example: 54e7c70d-fa97-11e7-b20f-00ffa96d3a77
+          description: ID of the message pair as in OCPP service
+          readOnly: true
+        action:
+          type: string
+          description: name of action
+          enum:
+            - Authorize
+            - BootNotification
+            - CancelReservation
+            - ChangeAvailability
+            - ChangeConfiguration
+            - ClearCache
+            - ClearChargingProfile
+            - DataTransfer
+            - GetCompositeSchedule
+            - DiagnosticsStatusNotification
+            - FirmwareStatusNotification
+            - GetConfiguration
+            - GetDiagnostics
+            - GetLocalListVersion
+            - Heartbeat
+            - MeterValues
+            - RemoteStartTransaction
+            - RemoteStopTransaction
+            - ReserveNow
+            - Reset
+            - SendLocalList
+            - SetChargingProfile
+            - StartTransaction
+            - StatusNotification
+            - StopTransaction
+            - TriggerMessage
+            - UnlockConnector
+            - UpdateFirmware
+          example: GetConfiguration
+          readOnly: true
+        actor:
+          type: string
+          description: initiator of message pair exchange
+          example: evse
+          enum:
+            - evse
+            - central
+          readOnly: true
+        request_date:
+          type: string
+          format: date-time
+          example: 2023-04-01T12:00:00+02
+          description: date and time of request
+          readOnly: true
+        response_date:
+          type: string
+          format: date-time
+          example: 2023-04-01T12:00:00+02
+          description: date and time of response
+          readOnly: true
+        status:
+          type: string
+          description: status of message pair
+          example: COMPLETE
+          enum:
+            - COMPLETE
+            - ERROR
+            - EXCEPTION
+            - PENDING
+            - SCHEDULED
+            - TIMED_OUT
+          readOnly: true
+        json:
+          type: boolean
+          description: Indicates if request_content and response_content is in JSON format
+          example: false
+          readOnly: true
+        request_content:
+          description: Request message (JSON or XML)
+          type: string
+          example: '{"requestedMessage": "StatusNotification"}'
+          readOnly: true
+        response_content:
+          description: Response message (JSON or XML)
+          type: string
+          example: '{"status": "Accepted"}'
+          readOnly: true
     ConnectionChainItem:
       description: Connection Chain item of a Charging Station
       type: object
@@ -2760,14 +2926,6 @@ components:
             example: employees_of_department_A
         organization_eligibility_list:
           $ref: '#/components/schemas/OrganizationList'
-        reservation_duration:
-          type: integer
-          description: |
-            Duration of reservation when using this tariff for a POI.
-              * If `0`, the current tariff is for a POI not supporting reservations
-              * Any value greater than `0`, the customers can reserve the POI for this amount of minutes
-          minimum: 0
-          example: 30
         authorization_url:
           type: string
           readOnly: true
@@ -3123,9 +3281,70 @@ components:
         type: array
         items:
           type: string
+    ocppMessagePairTypesParam:
+      name: message_types
+      in: query
+      description: Message pair types
+      schema:
+        type: array
+        items:
+          type: string
+          enum:
+            - Authorize
+            - BootNotification
+            - CancelReservation
+            - ChangeAvailability
+            - ChangeConfiguration
+            - ClearCache
+            - ClearChargingProfile
+            - DataTransfer
+            - GetCompositeSchedule
+            - DiagnosticsStatusNotification
+            - FirmwareStatusNotification
+            - GetConfiguration
+            - GetDiagnostics
+            - GetLocalListVersion
+            - Heartbeat
+            - MeterValues
+            - RemoteStartTransaction
+            - RemoteStopTransaction
+            - ReserveNow
+            - Reset
+            - SendLocalList
+            - SetChargingProfile
+            - StartTransaction
+            - StatusNotification
+            - StopTransaction
+            - TriggerMessage
+            - UnlockConnector
+            - UpdateFirmware
+    ocppMessagePairStatusParam:
+      name: message_pair_status
+      in: query
+      description: Message pair status
+      schema:
+        type: array
+        items:
+          type: string
+          enum:
+            - COMPLETE
+            - ERROR
+            - EXCEPTION
+            - PENDING
+            - SCHEDULED
+            - TIMED_OUT
     datePickerSinceParam:
       name: date_picker_since
       in: query
+      description: The date time to search from
+      schema:
+        type: string
+        pattern: '^(\d{4})-(\d{2})-(\d{2})T(\d{2}):(\d{2}):(\d{2})[\040+-](\d{4})$'
+        format: date-time
+    datePickerSinceRequiredParam:
+      name: date_picker_since
+      in: query
+      required: true
       description: The date time to search from
       schema:
         type: string
@@ -3135,6 +3354,15 @@ components:
       name: date_picker_until
       in: query
       description: The date time to search to
+      schema:
+        type: string
+        pattern: '^(\d{4})-(\d{2})-(\d{2})T(\d{2}):(\d{2}):(\d{2})[\040+-](\d{4})$'
+        format: date-time
+    datePickerUntilRequiredParam:
+      name: date_picker_until
+      in: query
+      required: true
+      description: The date time to search until
       schema:
         type: string
         pattern: '^(\d{4})-(\d{2})-(\d{2})T(\d{2}):(\d{2}):(\d{2})[\040+-](\d{4})$'
