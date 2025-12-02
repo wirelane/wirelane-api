@@ -111,6 +111,12 @@ paths:
           headers:
             X-Total-Count:
               $ref: '#/components/headers/X-Total-Count'
+            X-Total-Pages:
+              $ref: '#/components/headers/X-Total-Pages'
+            X-Per-Page:
+              $ref: '#/components/headers/X-Per-Page'
+            X-Page:
+              $ref: '#/components/headers/X-Page'
           content:
             application/json:
               schema:
@@ -201,6 +207,12 @@ paths:
           headers:
             X-Total-Count:
               $ref: '#/components/headers/X-Total-Count'
+            X-Total-Pages:
+              $ref: '#/components/headers/X-Total-Pages'
+            X-Per-Page:
+              $ref: '#/components/headers/X-Per-Page'
+            X-Page:
+              $ref: '#/components/headers/X-Page'
         default:
           $ref: '#/components/responses/default'
   /organizations/id/{organizationId}/sessions:
@@ -252,6 +264,12 @@ paths:
           headers:
             X-Total-Count:
               $ref: '#/components/headers/X-Total-Count'
+            X-Total-Pages:
+              $ref: '#/components/headers/X-Total-Pages'
+            X-Per-Page:
+              $ref: '#/components/headers/X-Per-Page'
+            X-Page:
+              $ref: '#/components/headers/X-Page'
         default:
           $ref: '#/components/responses/default'
   /organizations/id/{organizationId}/sessions/id/{sessionId}:
@@ -369,6 +387,12 @@ paths:
           headers:
             X-Total-Count:
               $ref: '#/components/headers/X-Total-Count'
+            X-Total-Pages:
+              $ref: '#/components/headers/X-Total-Pages'
+            X-Per-Page:
+              $ref: '#/components/headers/X-Per-Page'
+            X-Page:
+              $ref: '#/components/headers/X-Page'
         default:
           $ref: '#/components/responses/default'
   /organizations/id/{organizationId}/stations/id/{stationId}:
@@ -445,6 +469,12 @@ paths:
           headers:
             X-Total-Count:
               $ref: '#/components/headers/X-Total-Count'
+            X-Total-Pages:
+              $ref: '#/components/headers/X-Total-Pages'
+            X-Per-Page:
+              $ref: '#/components/headers/X-Per-Page'
+            X-Page:
+              $ref: '#/components/headers/X-Page'
         default:
           $ref: '#/components/responses/default'
   /organizations/id/{organizationId}/stations/id/{stationId}/connection:
@@ -499,17 +529,11 @@ paths:
             X-Total-Count:
               $ref: '#/components/headers/X-Total-Count'
             X-Total-Pages:
-              description: Total number of pages
-              schema:
-                type: integer
+              $ref: '#/components/headers/X-Total-Pages'
             X-Per-Page:
-              description: Number of items per page
-              schema:
-                type: integer
+              $ref: '#/components/headers/X-Per-Page'
             X-Page:
-              description: Current page
-              schema:
-                type: integer
+              $ref: '#/components/headers/X-Page'
         default:
           $ref: '#/components/responses/default'
   /organizations/id/{organizationId}/stations/id/{stationId}/connectors/id/{scmId}/remote_control/unlock_connector:
@@ -557,6 +581,12 @@ paths:
           headers:
             X-Total-Count:
               $ref: '#/components/headers/X-Total-Count'
+            X-Total-Pages:
+              $ref: '#/components/headers/X-Total-Pages'
+            X-Per-Page:
+              $ref: '#/components/headers/X-Per-Page'
+            X-Page:
+              $ref: '#/components/headers/X-Page'
         default:
           $ref: '#/components/responses/default'
   /organizations/id/{organizationId}/stations/id/{stationId}/ocpp_logs:
@@ -588,6 +618,12 @@ paths:
           headers:
             X-Total-Count:
               $ref: '#/components/headers/X-Total-Count'
+            X-Total-Pages:
+              $ref: '#/components/headers/X-Total-Pages'
+            X-Per-Page:
+              $ref: '#/components/headers/X-Per-Page'
+            X-Page:
+              $ref: '#/components/headers/X-Page'
         default:
           $ref: '#/components/responses/default'
   /organizations/id/{organizationId}/stations/id/{stationId}/remote_control/reset:
@@ -710,6 +746,12 @@ paths:
           headers:
             X-Total-Count:
               $ref: '#/components/headers/X-Total-Count'
+            X-Total-Pages:
+              $ref: '#/components/headers/X-Total-Pages'
+            X-Per-Page:
+              $ref: '#/components/headers/X-Per-Page'
+            X-Page:
+              $ref: '#/components/headers/X-Page'
         default:
           $ref: '#/components/responses/default'
   /organizations/id/{organizationId}/tariffs/id/{tariffId}:
@@ -3578,6 +3620,14 @@ components:
         type: integer
     X-Total-Pages:
       description: Total number of pages
+      schema:
+        type: integer
+    X-Per-Page:
+      description: Number of items per page
+      schema:
+        type: integer
+    X-Page:
+      description: Current page
       schema:
         type: integer
   securitySchemes:
