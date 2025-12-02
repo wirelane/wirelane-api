@@ -511,7 +511,7 @@ paths:
               schema:
                 type: integer
         default:
-          $ref: '#/responses/default'
+          $ref: '#/components/responses/default'
   /organizations/id/{organizationId}/stations/id/{stationId}/connectors/id/{scmId}/remote_control/unlock_connector:
     post:
       tags:
