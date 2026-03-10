@@ -1907,6 +1907,33 @@ components:
               description: Date of the status update
               readOnly: true
               example: 2023-05-01T00:00:00+0200
+            status:
+              type: string
+              description: |
+                Status of the connector
+                  * `FREE`: Connector is free / available
+                  * `IN_USE`: Connector is occupied (cable connected or RFID card presented to card reader, in case of roaming charging might already happen)
+                  * `CHARGING`: Connector is charging
+                  * `CHARGING_SUSPENDED_EV`: Connector is still connected but not charging anymore, process has been terminated by the EV driver
+                  * `CHARGING_SUSPENDED_EVSE`: Connector is still connected but not charging anymore, process has been terminated by the station
+                  * `UNAVAILABLE`: Connector is unavailable (not installed or broken)
+                  * `UNKNOWN`: Connector status is unknown
+                  * `FAULTED`: Connector is (temporary) faulted
+                  * `RESERVED`: Connector is reserved
+                  * `CLOSED`: Connector is closed (not in use anymore)
+                  * `MAINTENANCE`: Connector is scheduled for maintenance
+              enum:
+                - FREE
+                - IN_USE
+                - CHARGING
+                - CHARGING_SUSPENDED_EV
+                - CHARGING_SUSPENDED_EVSE
+                - UNAVAILABLE
+                - UNKNOWN
+                - FAULTED
+                - RESERVED
+                - CLOSED
+                - MAINTENANCE
     ConnectorInfo:
       description: Data which is specific for a single connector of a station
       type: object
@@ -3215,6 +3242,40 @@ components:
             - AC
             - DC
     pointStatusParam:
+      name: status
+      in: query
+      description: |
+        Status of the connector
+          * `FREE`: Connector is free / available
+          * `IN_USE`: Connector is occupied (cable connected or RFID card presented to card reader, in case of roaming charging might already happen)
+          * `CHARGING`: Connector is charging
+          * `CHARGING_SUSPENDED_EV`: Connector is still connected but not charging anymore, process has been terminated by the EV driver
+          * `CHARGING_SUSPENDED_EVSE`: Connector is still connected but not charging anymore, process has been terminated by the station
+          * `UNAVAILABLE`: Connector is unavailable (not installed or broken)
+          * `UNKNOWN`: Connector status is unknown
+          * `FAULTED`: Connector is (temporary) faulted
+          * `RESERVED`: Connector is reserved
+          * `CLOSED`: Connector is closed (not in use anymore)
+          * `MAINTENANCE`: Connector is scheduled for maintenance
+      style: form
+      explode: false
+      schema:
+        type: array
+        items:
+          type: string
+          enum:
+            - FREE
+            - IN_USE
+            - CHARGING
+            - CHARGING_SUSPENDED_EV
+            - CHARGING_SUSPENDED_EVSE
+            - UNAVAILABLE
+            - UNKNOWN
+            - FAULTED
+            - RESERVED
+            - CLOSED
+            - MAINTENANCE
+    pointInfoStatusParam:
       name: status
       in: query
       description: |
