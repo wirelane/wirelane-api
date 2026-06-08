@@ -3717,7 +3717,11 @@ x-webhooks:
       summary: Forwards an organization event to the defined callback.
       operationId: organization-event
       requestBody:
-        $ref: '#/components/schemas/EventLog'
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/EventLog'
       responses:
         200:
           description: Return a 200 status to indicate that the data was received successfully
