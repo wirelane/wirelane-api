@@ -16,7 +16,7 @@ jobs:
       - name: Install Redocly CLI
         run: npm install -g @redocly/cli@latest
       - name: Run linting
-        run: redocly build-docs openapi.yml -o dist/index.html --options.disableSearch --options.requiredPropsFirst --options.sortPropsAlphabetically
+        run: redocly build-docs openapi.yml -o dist/index.html --theme.openapi.disableSearch --theme.openapi.requiredPropsFirst --theme.openapi.sortPropsAlphabetically
       - name: Deploy
         uses: peaceiris/actions-gh-pages@v3
         with:
