@@ -1765,6 +1765,14 @@ paths:
       description: |
         Get config for token orders from the customer, e.g. the quantity of tokens still available for order
       operationId: getAccountTokenOrdersConfig
+      parameters:
+      - description: "[ISO 639-1](https://en.wikipedia.org/wiki/List_of_ISO_639-1_codes)\
+          \ language code."
+        in: header
+        name: language
+        schema:
+          pattern: "^[a-z]{2}$"
+          type: string
       responses:
         "200":
           content:
@@ -5254,10 +5262,9 @@ paths:
         name: transport_number
         schema:
           type: string
-      - description: "Partial search for the project id, e.g. an icr number for public\
-          \ charging points"
+      - description: Partial search for the ICR number
         in: query
-        name: project_id
+        name: icr_number
         schema:
           type: string
       - description: Delivery Address City
@@ -5568,6 +5575,7 @@ paths:
           - desired_delivery_date
           - energy_meter_serial_number
           - goods_issue_date
+          - icr_number
           - installation_city
           - installation_country
           - installation_street
@@ -5588,7 +5596,6 @@ paths:
           - product_description
           - production_date
           - production_order_number
-          - project_id
           - purchase_order_document_number
           - purchase_order_number
           - router_mac_address
@@ -6929,6 +6936,10 @@ paths:
       x-codegen-request-body-name: body
   /organizations/id/{organizationId}/member_groups/id/{memberGroupId}/tariffs:
     get:
+      description: |
+        Honours the tariff settings (see `getTariffSettings`) per tariff type: own tariffs first, then the tariffs of the CPO (parent tenant)
+        for types in `own_with_cpo_fallback`; only CPO tariffs for types in `cpo_only`. CPO tariffs are flagged with `inherited = true`.
+        `order_by` and `order_direction` apply within the own tariffs and within the CPO tariffs.
       operationId: listOrganizationMemberGroupTariffs
       parameters:
       - description: Organization ID
@@ -9235,6 +9246,718 @@ paths:
       tags:
       - Organizations Members Invitations
       x-authentication-roles: ORGA_ROLE_MEMBERS_INVITE
+  /organizations/id/{organizationId}/ocpp/stations/id/{stationId}/availability:
+    get:
+      description: |
+        Get the availability (online, offline, error, unknown) of a single station and of each of its charging points
+        over time, as consecutive intervals within the requested period.
+        Data is only available for the last 3 months. A period that reaches back further is not rejected but
+        clamped to the last 3 months; `date_from` and `date_to` of the response contain the effective period.
+        If `date_picker_until` itself is older than 3 months, the effective period is empty: the response is no error,
+        `date_from` and `date_to` both contain the clamp limit (now minus 3 months), and the intervals of the station
+        and of every charging point are empty.
+        The end of the period is clamped to now, so no interval reaches into the future. If the requested period lies
+        entirely in the future, `date_from` and `date_to` both contain now and the intervals are empty.
+      operationId: getOrganizationOcppStationAvailability
+      parameters:
+      - description: Organization ID
+        in: path
+        name: organizationId
+        required: true
+        schema:
+          pattern: "^[a-zA-Z0-9-_*]+$"
+          type: string
+      - description: |
+          The ID to search for.
+        in: path
+        name: stationId
+        required: true
+        schema:
+          type: integer
+      - description: The date time to search from
+        in: query
+        name: date_picker_since
+        required: true
+        schema:
+          format: date-time
+          type: string
+      - description: The date time to search to
+        in: query
+        name: date_picker_until
+        required: true
+        schema:
+          format: date-time
+          type: string
+      responses:
+        "200":
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ChargingStationAvailability"
+          description: Availability timeline of the station and its charging points
+        "400":
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/HttpError"
+          description: "Invalid or missing dates, or `date_picker_since` is not before\
+            \ `date_picker_until`. A period older than 3 months is no error, see the\
+            \ operation description."
+        "404":
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/HttpError"
+          description: The station does not exist or does not belong to the organization
+        "502":
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/HttpError"
+          description: A data source for the availability could not be read
+        default:
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/HttpError"
+          description: Error response
+      summary: Retrieve the availability timeline of a charging station and its charging
+        points
+      tags:
+      - Organizations OCPP Availability
+      x-authentication-roles: ORGA_ROLE_CHARGING_STATIONS_VIEW
+  /organizations/id/{organizationId}/ocpp/stations/id/{stationId}/connectors/id/{scmId}/log_analyses:
+    get:
+      description: |
+        Lists the AI analyses of the OCPP log of a single connector, newest first.
+      operationId: listOrganizationOcppStationConnectorLogAnalyses
+      parameters:
+      - description: Organization ID
+        in: path
+        name: organizationId
+        required: true
+        schema:
+          pattern: "^[a-zA-Z0-9-_*]+$"
+          type: string
+      - description: |
+          The ID to search for.
+        in: path
+        name: stationId
+        required: true
+        schema:
+          type: integer
+      - description: The Scm-ID of the connector. See `Connector.scm_id`
+        in: path
+        name: scmId
+        required: true
+        schema:
+          pattern: "^[a-zA-Z0-9]+$"
+          type: string
+      - description: Number of current page
+        in: query
+        name: page
+        schema:
+          default: 1
+          minimum: 1
+          type: integer
+      - description: Number of items per page
+        in: query
+        name: page_size
+        schema:
+          default: 50
+          maximum: 1000
+          minimum: 1
+          type: integer
+      - description: "Only return analyses of this charging session (`ChargingSession.session_id`,\
+          \ UUIDv4)"
+        in: query
+        name: session_id
+        schema:
+          pattern: "^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$"
+          type: string
+      responses:
+        "200":
+          content:
+            application/json:
+              schema:
+                items:
+                  $ref: "#/components/schemas/OcppLogAnalysis"
+                type: array
+          description: OCPP log analyses of the connector
+          headers:
+            X-Per-Page:
+              description: Number of items per page
+              schema:
+                type: integer
+            X-Total-Count:
+              description: Total number of items
+              schema:
+                type: integer
+            X-Total-Pages:
+              description: Total number of pages
+              schema:
+                type: integer
+            X-Page:
+              description: Current page
+              schema:
+                type: integer
+        default:
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/HttpError"
+          description: Error response
+      summary: List AI analyses of the OCPP log of a connector
+      tags:
+      - Organizations OCPP Analyses
+      x-authentication-roles: ORGA_ROLE_CHARGING_STATIONS_OCPP_LOG_ANALYSIS
+    post:
+      description: |
+        Requests an AI analysis of the OCPP log of a charging session on a single connector.
+        The analysis runs asynchronously; poll the returned analysis until its status is `completed` or `failed`.
+      operationId: createOrganizationOcppStationConnectorLogAnalysis
+      parameters:
+      - description: Organization ID
+        in: path
+        name: organizationId
+        required: true
+        schema:
+          pattern: "^[a-zA-Z0-9-_*]+$"
+          type: string
+      - description: |
+          The ID to search for.
+        in: path
+        name: stationId
+        required: true
+        schema:
+          type: integer
+      - description: The Scm-ID of the connector. See `Connector.scm_id`
+        in: path
+        name: scmId
+        required: true
+        schema:
+          pattern: "^[a-zA-Z0-9]+$"
+          type: string
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreateOcppLogAnalysisRequest"
+        required: true
+      responses:
+        "202":
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/OcppLogAnalysis"
+          description: Request has been accepted. The analysis is performed asynchronously.
+        default:
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/HttpError"
+          description: Error response
+      summary: Request an AI analysis of the OCPP log of a charging session
+      tags:
+      - Organizations OCPP Analyses
+      x-authentication-roles: ORGA_ROLE_CHARGING_STATIONS_OCPP_LOG_ANALYSIS
+      x-codegen-request-body-name: body
+  /organizations/id/{organizationId}/ocpp/stations/id/{stationId}/connectors/id/{scmId}/log_analyses/id/{analysisId}:
+    get:
+      description: |
+        Get a single AI analysis of the OCPP log of a connector, e.g. to poll its status.
+      operationId: getOrganizationOcppStationConnectorLogAnalysis
+      parameters:
+      - description: Organization ID
+        in: path
+        name: organizationId
+        required: true
+        schema:
+          pattern: "^[a-zA-Z0-9-_*]+$"
+          type: string
+      - description: |
+          The ID to search for.
+        in: path
+        name: stationId
+        required: true
+        schema:
+          type: integer
+      - description: The Scm-ID of the connector. See `Connector.scm_id`
+        in: path
+        name: scmId
+        required: true
+        schema:
+          pattern: "^[a-zA-Z0-9]+$"
+          type: string
+      - description: ID (UUIDv4) of the OCPP log analysis
+        in: path
+        name: analysisId
+        required: true
+        schema:
+          pattern: "^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$"
+          type: string
+      responses:
+        "200":
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/OcppLogAnalysis"
+          description: OCPP log analysis
+        default:
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/HttpError"
+          description: Error response
+      summary: Retrieve an AI analysis of the OCPP log of a connector
+      tags:
+      - Organizations OCPP Analyses
+      x-authentication-roles: ORGA_ROLE_CHARGING_STATIONS_OCPP_LOG_ANALYSIS
+  /organizations/id/{organizationId}/ocpp/stations/id/{stationId}/connectors/id/{scmId}/logs:
+    get:
+      description: |
+        Get OCPP logs for a single connector
+      operationId: listOrganizationOcppStationConnectorLogs
+      parameters:
+      - description: Organization ID
+        in: path
+        name: organizationId
+        required: true
+        schema:
+          pattern: "^[a-zA-Z0-9-_*]+$"
+          type: string
+      - description: |
+          The ID to search for.
+        in: path
+        name: stationId
+        required: true
+        schema:
+          type: integer
+      - description: The Scm-ID of the connector. See `Connector.scm_id`
+        in: path
+        name: scmId
+        required: true
+        schema:
+          pattern: "^[a-zA-Z0-9]+$"
+          type: string
+      - description: Number of current page
+        in: query
+        name: page
+        schema:
+          default: 1
+          minimum: 1
+          type: integer
+      - description: Number of items per page
+        in: query
+        name: page_size
+        schema:
+          default: 50
+          maximum: 1000
+          minimum: 1
+          type: integer
+      - description: The date time to search from
+        in: query
+        name: date_picker_since
+        required: true
+        schema:
+          format: date-time
+          type: string
+      - description: The date time to search to
+        in: query
+        name: date_picker_until
+        required: true
+        schema:
+          format: date-time
+          type: string
+      - description: Message pair types
+        explode: false
+        in: query
+        name: message_types
+        schema:
+          items:
+            enum:
+            - Authorize
+            - BootNotification
+            - CancelReservation
+            - ChangeAvailability
+            - ChangeConfiguration
+            - ClearCache
+            - ClearChargingProfile
+            - DataTransfer
+            - GetCompositeSchedule
+            - DiagnosticsStatusNotification
+            - FirmwareStatusNotification
+            - GetConfiguration
+            - GetDiagnostics
+            - GetLocalListVersion
+            - Heartbeat
+            - MeterValues
+            - RemoteStartTransaction
+            - RemoteStopTransaction
+            - ReserveNow
+            - Reset
+            - SendLocalList
+            - SetChargingProfile
+            - StartTransaction
+            - StatusNotification
+            - StopTransaction
+            - TriggerMessage
+            - UnlockConnector
+            - UpdateFirmware
+            type: string
+          type: array
+        style: form
+      - description: Message pair status
+        explode: false
+        in: query
+        name: message_pair_status
+        schema:
+          items:
+            enum:
+            - COMPLETE
+            - ERROR
+            - EXCEPTION
+            - PENDING
+            - SCHEDULED
+            - TIMED_OUT
+            type: string
+          type: array
+        style: form
+      responses:
+        "200":
+          content:
+            application/json:
+              schema:
+                items:
+                  $ref: "#/components/schemas/ChargingStationOcppLog"
+                type: array
+          description: OCPP Logs For Specific Connector
+          headers:
+            X-Per-Page:
+              description: Number of items per page
+              schema:
+                type: integer
+            X-Total-Count:
+              description: Total number of items
+              schema:
+                type: integer
+            X-Total-Pages:
+              description: Total number of pages
+              schema:
+                type: integer
+            X-Page:
+              description: Current page
+              schema:
+                type: integer
+        default:
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/HttpError"
+          description: Error response
+      summary: Retrieve OCPP Logs for a specific connector
+      tags:
+      - Organizations OCPP Logs
+      x-authentication-roles: ORGA_ROLE_CHARGING_STATIONS_VIEW
+  /organizations/id/{organizationId}/ocpp/stations/id/{stationId}/connectors/id/{scmId}/logs/stats:
+    get:
+      description: |
+        Get OCPP log statistics for a single connector
+      operationId: getOrganizationOcppStationConnectorLogStatistics
+      parameters:
+      - description: Organization ID
+        in: path
+        name: organizationId
+        required: true
+        schema:
+          pattern: "^[a-zA-Z0-9-_*]+$"
+          type: string
+      - description: |
+          The ID to search for.
+        in: path
+        name: stationId
+        required: true
+        schema:
+          type: integer
+      - description: The Scm-ID of the connector. See `Connector.scm_id`
+        in: path
+        name: scmId
+        required: true
+        schema:
+          pattern: "^[a-zA-Z0-9]+$"
+          type: string
+      - description: The date time to search from
+        in: query
+        name: date_picker_since
+        required: true
+        schema:
+          format: date-time
+          type: string
+      - description: The date time to search to
+        in: query
+        name: date_picker_until
+        required: true
+        schema:
+          format: date-time
+          type: string
+      responses:
+        "200":
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ChargingStationOcppStatistics"
+          description: OCPP Logs Statistics For Specific Connector
+        default:
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/HttpError"
+          description: Error response
+      summary: Retrieve OCPP Log statistics for a specific connector
+      tags:
+      - Organizations OCPP Logs
+      x-authentication-roles: ORGA_ROLE_CHARGING_STATIONS_VIEW
+  /organizations/id/{organizationId}/ocpp/stations/id/{stationId}/logs:
+    get:
+      description: |
+        Get OCPP logs for a single station
+      operationId: listOrganizationOcppStationLogs
+      parameters:
+      - description: Organization ID
+        in: path
+        name: organizationId
+        required: true
+        schema:
+          pattern: "^[a-zA-Z0-9-_*]+$"
+          type: string
+      - description: |
+          The ID to search for.
+        in: path
+        name: stationId
+        required: true
+        schema:
+          type: integer
+      - description: Number of current page
+        in: query
+        name: page
+        schema:
+          default: 1
+          minimum: 1
+          type: integer
+      - description: Number of items per page
+        in: query
+        name: page_size
+        schema:
+          default: 50
+          maximum: 1000
+          minimum: 1
+          type: integer
+      - description: The date time to search from
+        in: query
+        name: date_picker_since
+        required: true
+        schema:
+          format: date-time
+          type: string
+      - description: The date time to search to
+        in: query
+        name: date_picker_until
+        required: true
+        schema:
+          format: date-time
+          type: string
+      - description: Message pair types
+        explode: false
+        in: query
+        name: message_types
+        schema:
+          items:
+            enum:
+            - Authorize
+            - BootNotification
+            - CancelReservation
+            - ChangeAvailability
+            - ChangeConfiguration
+            - ClearCache
+            - ClearChargingProfile
+            - DataTransfer
+            - GetCompositeSchedule
+            - DiagnosticsStatusNotification
+            - FirmwareStatusNotification
+            - GetConfiguration
+            - GetDiagnostics
+            - GetLocalListVersion
+            - Heartbeat
+            - MeterValues
+            - RemoteStartTransaction
+            - RemoteStopTransaction
+            - ReserveNow
+            - Reset
+            - SendLocalList
+            - SetChargingProfile
+            - StartTransaction
+            - StatusNotification
+            - StopTransaction
+            - TriggerMessage
+            - UnlockConnector
+            - UpdateFirmware
+            type: string
+          type: array
+        style: form
+      - description: Message pair status
+        explode: false
+        in: query
+        name: message_pair_status
+        schema:
+          items:
+            enum:
+            - COMPLETE
+            - ERROR
+            - EXCEPTION
+            - PENDING
+            - SCHEDULED
+            - TIMED_OUT
+            type: string
+          type: array
+        style: form
+      responses:
+        "200":
+          content:
+            application/json:
+              schema:
+                items:
+                  $ref: "#/components/schemas/ChargingStationOcppLog"
+                type: array
+          description: OCPP Logs
+          headers:
+            X-Per-Page:
+              description: Number of items per page
+              schema:
+                type: integer
+            X-Total-Count:
+              description: Total number of items
+              schema:
+                type: integer
+            X-Total-Pages:
+              description: Total number of pages
+              schema:
+                type: integer
+            X-Page:
+              description: Current page
+              schema:
+                type: integer
+        default:
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/HttpError"
+          description: Error response
+      summary: Retrieve OCPP Logs for a specific charging station
+      tags:
+      - Organizations OCPP Logs
+      x-authentication-roles: ORGA_ROLE_CHARGING_STATIONS_VIEW
+  /organizations/id/{organizationId}/ocpp/stations/id/{stationId}/logs/id/{logId}:
+    get:
+      description: |
+        Get a single OCPP log entry (message pair) of a station, e.g. the StatusNotification an availability interval is based on
+      operationId: getOrganizationOcppStationLog
+      parameters:
+      - description: Organization ID
+        in: path
+        name: organizationId
+        required: true
+        schema:
+          pattern: "^[a-zA-Z0-9-_*]+$"
+          type: string
+      - description: |
+          The ID to search for.
+        in: path
+        name: stationId
+        required: true
+        schema:
+          type: integer
+      - description: ID (UUIDv4) of the OCPP log entry. See `ChargingStationOcppLog.id`
+        in: path
+        name: logId
+        required: true
+        schema:
+          pattern: "^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$"
+          type: string
+      responses:
+        "200":
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ChargingStationOcppLog"
+          description: OCPP Log entry
+        "404":
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/HttpError"
+          description: "The station or the log entry does not exist, or the log entry\
+            \ does not belong to the station"
+        default:
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/HttpError"
+          description: Error response
+      summary: Retrieve a single OCPP Log entry of a charging station
+      tags:
+      - Organizations OCPP Logs
+      x-authentication-roles: ORGA_ROLE_CHARGING_STATIONS_VIEW
+  /organizations/id/{organizationId}/ocpp/stations/id/{stationId}/logs/stats:
+    get:
+      description: |
+        Get OCPP log statistics for a single station
+      operationId: getOrganizationOcppStationLogStatistics
+      parameters:
+      - description: Organization ID
+        in: path
+        name: organizationId
+        required: true
+        schema:
+          pattern: "^[a-zA-Z0-9-_*]+$"
+          type: string
+      - description: |
+          The ID to search for.
+        in: path
+        name: stationId
+        required: true
+        schema:
+          type: integer
+      - description: The date time to search from
+        in: query
+        name: date_picker_since
+        required: true
+        schema:
+          format: date-time
+          type: string
+      - description: The date time to search to
+        in: query
+        name: date_picker_until
+        required: true
+        schema:
+          format: date-time
+          type: string
+      responses:
+        "200":
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ChargingStationOcppStatistics"
+          description: OCPP Logs Statistics
+        default:
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/HttpError"
+          description: Error response
+      summary: Retrieve OCPP Log statistics for a specific charging station
+      tags:
+      - Organizations OCPP Logs
+      x-authentication-roles: ORGA_ROLE_CHARGING_STATIONS_VIEW
   /organizations/id/{organizationId}/organization_groups:
     get:
       operationId: getOrganizationGroups
@@ -9283,6 +10006,12 @@ paths:
           - asc
           - desc
           type: string
+      - description: Include the IDs of the member organizations of each group
+        in: query
+        name: include_organizations
+        schema:
+          default: true
+          type: boolean
       responses:
         "200":
           content:
@@ -9291,7 +10020,8 @@ paths:
                 items:
                   $ref: "#/components/schemas/OrganizationGroup"
                 type: array
-          description: Returns organization groups that belongs to the organization
+          description: Returns organization groups that belongs to the organization.
+            `organizations` is omitted when `include_organizations` is `false`.
           headers:
             X-Per-Page:
               description: Number of items per page
@@ -10067,6 +10797,8 @@ paths:
           - last_error
           - last_display_text
           - last_day_log
+          - conversion_rate
+          - successful_reservations
           type: string
       - description: Key for order direction
         in: query
@@ -11550,6 +12282,10 @@ paths:
       x-authentication-roles: ORGA_ROLE_POINT_GROUPS_VIEW
   /organizations/id/{organizationId}/point_groups/id/{groupId}/tariffs:
     get:
+      description: |
+        Honours the tariff settings (see `getTariffSettings`) per tariff type: own tariffs first, then the tariffs of the CPO (parent tenant)
+        for types in `own_with_cpo_fallback`; only CPO tariffs for types in `cpo_only`. CPO tariffs are flagged with `inherited = true`.
+        `order_by` and `order_direction` apply within the own tariffs and within the CPO tariffs.
       operationId: listOrganizationPointGroupTariffs
       parameters:
       - description: Organization ID
@@ -11687,6 +12423,9 @@ paths:
   /organizations/id/{organizationId}/points/{pointTypeId}/{pointId}/tariffs:
     get:
       deprecated: true
+      description: |
+        Honours the tariff settings (see `getTariffSettings`) per tariff type: own tariffs first, then the tariffs of the CPO (parent tenant)
+        for types in `own_with_cpo_fallback`; only CPO tariffs for types in `cpo_only`. CPO tariffs are flagged with `inherited = true`.
       operationId: listOrganizationChargingPointTariffs
       parameters:
       - description: Organization ID
@@ -12567,6 +13306,12 @@ paths:
         "200":
           content: {}
           description: Receipt was sent
+        "409":
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/HttpError"
+          description: "Receipt cannot be resent, no email address known"
         default:
           content:
             application/json:
@@ -15210,6 +15955,123 @@ paths:
       tags:
       - Organizations Router
       x-authentication-roles: ORGA_ROLE_ROUTERS_DEPLOY_CONFIGURATION
+  /organizations/id/{organizationId}/router/{serial}/log_history:
+    get:
+      description: |
+        Returns the log history of the router with the given serial, newest entries first.
+      operationId: getRouterLogHistory
+      parameters:
+      - description: Organization ID
+        in: path
+        name: organizationId
+        required: true
+        schema:
+          pattern: "^[a-zA-Z0-9-_*]+$"
+          type: string
+      - description: 10 digit serial number
+        in: path
+        name: serial
+        required: true
+        schema:
+          pattern: "^[0-9]{10}$"
+          type: string
+      - description: The log history type to search for
+        explode: false
+        in: query
+        name: type
+        schema:
+          items:
+            enum:
+            - info
+            - error
+            type: string
+          type: array
+        style: form
+      - description: Number of current page
+        in: query
+        name: page
+        schema:
+          default: 1
+          minimum: 1
+          type: integer
+      - description: Number of items per page
+        in: query
+        name: page_size
+        schema:
+          default: 50
+          maximum: 1000
+          minimum: 1
+          type: integer
+      responses:
+        "200":
+          content:
+            application/json:
+              schema:
+                items:
+                  $ref: "#/components/schemas/RouterLogHistory"
+                type: array
+          description: List of Log History data.
+          headers:
+            X-Per-Page:
+              description: Number of items per page
+              schema:
+                type: integer
+            X-Total-Count:
+              description: Total number of items
+              schema:
+                type: integer
+            X-Total-Pages:
+              description: Total number of pages
+              schema:
+                type: integer
+            X-Page:
+              description: Current page
+              schema:
+                type: integer
+        default:
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/HttpError"
+          description: Error response
+      summary: Expose the Log History of the router with the given serial
+      tags:
+      - Organizations Router
+      x-authentication-roles: ORGA_ROLE_ROUTERS_VIEW_LOG_HISTORY
+  /organizations/id/{organizationId}/router/{serial}/reset_openwisp_key:
+    post:
+      description: |
+        Resets the OpenWISP key of the router with the given serial so the router can register with OpenWISP again (e.g. after a factory reset).
+      operationId: resetRouterOpenwispKey
+      parameters:
+      - description: Organization ID
+        in: path
+        name: organizationId
+        required: true
+        schema:
+          pattern: "^[a-zA-Z0-9-_*]+$"
+          type: string
+      - description: 10 digit serial number
+        in: path
+        name: serial
+        required: true
+        schema:
+          pattern: "^[0-9]{10}$"
+          type: string
+      responses:
+        "204":
+          content: {}
+          description: OK. No content.
+        default:
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/HttpError"
+          description: Error response
+      summary: Reset router OpenWISP key
+      tags:
+      - Organizations Router
+      x-authentication-roles: ORGA_ROLE_ROUTERS_RESET_OPENWISP_KEY
   /organizations/id/{organizationId}/router/{serial}/reset_vpn:
     post:
       operationId: resetRouterVpn
@@ -15242,6 +16104,44 @@ paths:
       tags:
       - Organizations Router
       x-authentication-roles: ORGA_ROLE_ROUTERS_RESET_VPN
+  /organizations/id/{organizationId}/router/{serial}/root_password:
+    get:
+      description: |
+        Returns the root password of the router with the given serial.
+        Responds with 404 if the router does not exist or no root password is available for it.
+      operationId: getRouterRootPassword
+      parameters:
+      - description: Organization ID
+        in: path
+        name: organizationId
+        required: true
+        schema:
+          pattern: "^[a-zA-Z0-9-_*]+$"
+          type: string
+      - description: 10 digit serial number
+        in: path
+        name: serial
+        required: true
+        schema:
+          pattern: "^[0-9]{10}$"
+          type: string
+      responses:
+        "200":
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/RouterRootPassword"
+          description: OK. Returns the root password of the router
+        default:
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/HttpError"
+          description: Error response
+      summary: Get the root password of the router with the given serial
+      tags:
+      - Organizations Router
+      x-authentication-roles: ORGA_ROLE_ROUTERS_ROOT_PASSWORD_VIEW
   /organizations/id/{organizationId}/sessions:
     get:
       description: |
@@ -17115,8 +18015,10 @@ paths:
       x-codegen-request-body-name: body
   /organizations/id/{organizationId}/stations/id/{stationId}/connectors/id/{scmId}/ocpp_logs:
     get:
+      deprecated: true
       description: |
         Get OCPP logs for a single connector
+        @deprecated: Use `listOrganizationOcppStationConnectorLogs` instead.
       operationId: listOrganizationChargingStationConnectorOcppLogs
       parameters:
       - description: Organization ID
@@ -17261,8 +18163,10 @@ paths:
       x-authentication-roles: ORGA_ROLE_CHARGING_STATIONS_VIEW
   /organizations/id/{organizationId}/stations/id/{stationId}/connectors/id/{scmId}/ocpp_logs/stats:
     get:
+      deprecated: true
       description: |
         Get OCPP log statistics for a single connector
+        @deprecated: Use `getOrganizationOcppStationConnectorLogStatistics` instead.
       operationId: getOrganizationChargingStationConnectorOcppLogStatistics
       parameters:
       - description: Organization ID
@@ -17698,8 +18602,10 @@ paths:
       x-codegen-request-body-name: body
   /organizations/id/{organizationId}/stations/id/{stationId}/ocpp_logs:
     get:
+      deprecated: true
       description: |
         Get OCPP logs for a single station
+        @deprecated: Use `listOrganizationOcppStationLogs` instead.
       operationId: listOrganizationChargingStationOcppLogs
       parameters:
       - description: Organization ID
@@ -17837,8 +18743,10 @@ paths:
       x-authentication-roles: ORGA_ROLE_CHARGING_STATIONS_VIEW
   /organizations/id/{organizationId}/stations/id/{stationId}/ocpp_logs/stats:
     get:
+      deprecated: true
       description: |
         Get OCPP log statistics for a single station
+        @deprecated: Use `getOrganizationOcppStationLogStatistics` instead.
       operationId: getOrganizationChargingStationOcppLogStatistics
       parameters:
       - description: Organization ID
@@ -19213,6 +20121,14 @@ paths:
       x-authentication-roles: ORGA_ROLE_B2B_RECEIPTS_VIEW
   /organizations/id/{organizationId}/tariffs:
     get:
+      description: |
+        Returns the tariffs of the organization, depending on the tariff settings (see `getTariffSettings`) per tariff type:
+        * `own_only`: Only the organization's own tariffs.
+        * `own_with_cpo_fallback`: The organization's own tariffs, followed by the tariffs of its CPO (parent tenant).
+        * `cpo_only`: Only the tariffs of its CPO (parent tenant).
+
+        Own tariffs are always listed first. `order_by` and `order_direction` apply within the own tariffs and within the CPO tariffs.
+        Tariffs of the CPO are flagged with `inherited = true` and cannot be changed by the organization.
       operationId: findTariffsByOrganizationId
       parameters:
       - description: Organization ID
@@ -19384,6 +20300,13 @@ paths:
               schema:
                 $ref: "#/components/schemas/Tariff"
           description: Returns created tariff object
+        "400":
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/HttpError"
+          description: "Invalid tariff, e.g. the tariff settings of the organization\
+            \ are `cpo_only` for its `tariff_type`"
         default:
           content:
             application/json:
@@ -19458,6 +20381,13 @@ paths:
               schema:
                 $ref: "#/components/schemas/Tariff"
           description: Returns changed complex tariff object
+        "400":
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/HttpError"
+          description: "Invalid tariff, e.g. the tariff settings of the organization\
+            \ are `cpo_only` for its new `tariff_type`"
         default:
           content:
             application/json:
@@ -19687,6 +20617,80 @@ paths:
       tags:
       - Organizations Tariffs
       x-authentication-roles: ORGA_ROLE_TARIFFS_VIEW
+  /organizations/id/{organizationId}/tariffs/settings:
+    get:
+      description: "Returns per tariff type whether the organization uses its own\
+        \ tariffs, the tariffs of its CPO (parent tenant) or both."
+      operationId: getTariffSettings
+      parameters:
+      - description: Organization ID
+        in: path
+        name: organizationId
+        required: true
+        schema:
+          pattern: "^[a-zA-Z0-9-_*]+$"
+          type: string
+      responses:
+        "200":
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/TariffSettings"
+          description: Returns the tariff settings
+        default:
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/HttpError"
+          description: Error response
+      summary: Get tariff settings
+      tags:
+      - Organizations Tariffs
+      x-authentication-roles: ORGA_ROLE_TARIFFS_VIEW
+    put:
+      description: |
+        Changes the tariff settings. Tariff types omitted in the body stay unchanged.
+        A mode other than `own_only` is rejected if the organization has no CPO (parent tenant).
+      operationId: updateTariffSettings
+      parameters:
+      - description: Organization ID
+        in: path
+        name: organizationId
+        required: true
+        schema:
+          pattern: "^[a-zA-Z0-9-_*]+$"
+          type: string
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/TariffSettingsUpdateRequest"
+        required: true
+      responses:
+        "200":
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/TariffSettings"
+          description: Returns the changed tariff settings
+        "400":
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/HttpError"
+          description: "Invalid tariff settings, e.g. a mode other than `own_only`\
+            \ for an organization without a CPO (parent tenant)"
+        default:
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/HttpError"
+          description: Error response
+      summary: Change tariff settings
+      tags:
+      - Organizations Tariffs
+      x-authentication-roles: ORGA_ROLE_TARIFFS_UPDATE
+      x-codegen-request-body-name: body
   /organizations/id/{organizationId}/tokens:
     get:
       operationId: getOrganizationTokens
@@ -21089,6 +22093,12 @@ paths:
               schema:
                 $ref: "#/components/schemas/ChargingSessionInfo"
           description: Result of the ChargingSession start request
+        "403":
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ChargingSessionStartHttpError"
+          description: The customer account is blocked (`error_code` `account_blocked`)
         default:
           content:
             application/json:
@@ -21281,11 +22291,11 @@ paths:
             type: string
           type: array
         style: form
-      - description: The ID to search for
+      - description: "EVSE ID to search for; surrounding whitespace is ignored, values\
+          \ that are not a valid EVSE ID yield an empty result"
         in: query
         name: evseid
         schema:
-          pattern: "^[a-zA-Z0-9-_*]+$"
           type: string
       - description: Filter by CPOs
         explode: false
@@ -22325,6 +23335,13 @@ components:
       schema:
         default: true
         type: boolean
+    includeOrganizationsParam:
+      description: Include the IDs of the member organizations of each group
+      in: query
+      name: include_organizations
+      schema:
+        default: true
+        type: boolean
     activeOrganizationsFilterParam:
       description: Filter to show only active sub-organizations
       in: query
@@ -22451,6 +23468,13 @@ components:
       name: evseid
       schema:
         pattern: "^[a-zA-Z0-9-_*]+$"
+        type: string
+    evseIdSearchQueryParam:
+      description: "EVSE ID to search for; surrounding whitespace is ignored, values\
+        \ that are not a valid EVSE ID yield an empty result"
+      in: query
+      name: evseid
+      schema:
         type: string
     paymentTerminalActiveFilterParam:
       description: Filter to include or exclude active payment terminals
@@ -23306,6 +24330,19 @@ components:
       schema:
         pattern: "^[a-z]{2}$"
         type: string
+    routerLogHistoryTypeParam:
+      description: The log history type to search for
+      explode: false
+      in: query
+      name: type
+      schema:
+        items:
+          enum:
+          - info
+          - error
+          type: string
+        type: array
+      style: form
     routerSerialParam:
       description: 10 digit serial number
       in: path
@@ -23368,6 +24405,22 @@ components:
       description: Webhook UUID
       in: path
       name: webhookId
+      required: true
+      schema:
+        pattern: "^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$"
+        type: string
+    ocppLogAnalysisIdParam:
+      description: ID (UUIDv4) of the OCPP log analysis
+      in: path
+      name: analysisId
+      required: true
+      schema:
+        pattern: "^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$"
+        type: string
+    ocppLogIdParam:
+      description: ID (UUIDv4) of the OCPP log entry. See `ChargingStationOcppLog.id`
+      in: path
+      name: logId
       required: true
       schema:
         pattern: "^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$"
@@ -23568,18 +24621,6 @@ components:
             example: false
             readOnly: true
             type: boolean
-          blocked_reasons:
-            description: Reasons for account block
-            example:
-            - UNPAID_INVOICE
-            items:
-              enum:
-              - NO_ACTIVE_SUBSCRIPTION
-              - UNPAID_INVOICE
-              - MANUALLY_BLOCKED
-              type: string
-            readOnly: true
-            type: array
           blocked_manually_reason:
             description: "Custom block reason, if `MANUALLY_BLOCKED` is set."
             example: Customer violated the ToS.
@@ -23624,6 +24665,8 @@ components:
         tenant: dewln
         email: test@example.com
         status: ACTIVE
+        blocked_reasons:
+        - UNPAID_INVOICE
         terminationRequested: 2023-04-01T12:00:00+02:00
         terminationEffective: 2023-04-01T12:00:00+02:00
         terminationReason: terminationReason
@@ -23632,8 +24675,6 @@ components:
         updated: 2023-04-01T12:00:00+02:00
         authDate: 2023-04-01T12:00:00+02:00
         anonymized: false
-        blocked_reasons:
-        - UNPAID_INVOICE
         blocked_manually_reason: Customer violated the ToS.
         transactional_invoicing: true
         additional_payment_methods:
@@ -23670,6 +24711,18 @@ components:
             - PENDING
             readOnly: true
             type: string
+          blocked_reasons:
+            description: Reasons for account block; empty unless `status` is `BLOCKED`.
+            example:
+            - UNPAID_INVOICE
+            items:
+              enum:
+              - NO_ACTIVE_SUBSCRIPTION
+              - UNPAID_INVOICE
+              - MANUALLY_BLOCKED
+              type: string
+            readOnly: true
+            type: array
           terminationRequested:
             description: Date and time when the account termination was requested.
             example: 2023-04-01T12:00:00+02:00
@@ -23709,6 +24762,8 @@ components:
         tenant: dewln
         email: test@example.com
         status: ACTIVE
+        blocked_reasons:
+        - UNPAID_INVOICE
         terminationRequested: 2023-04-01T12:00:00+02:00
         terminationEffective: 2023-04-01T12:00:00+02:00
         terminationReason: terminationReason
@@ -24318,8 +25373,8 @@ components:
             type: string
           sf_cp_id:
             description: "The salesforce ID of the charging point, that represents\
-              \ the \"philosophical\" point."
-            example: 00055c6800055c68ab
+              \ the contractual charging point/station."
+            example: K7P4M
             readOnly: true
             type: string
           asset_id:
@@ -24459,6 +25514,8 @@ components:
             example: true
             readOnly: true
             type: boolean
+          request_origin:
+            $ref: "#/components/schemas/RequestOrigin"
         type: object
       example:
         session_id: d8d195c0-900e-41f1-b239-0456855d81c2
@@ -24533,7 +25590,7 @@ components:
         charging_point_id: 00eb08a9b45c69a4f9f14982a0095e12
         charge_point_id: DESGDE000801-2
         sf_asset_id: 00055c6800055c68ab
-        sf_cp_id: 00055c6800055c68ab
+        sf_cp_id: K7P4M
         asset_id: 00055c68-db40-4484-b11c-11a6b6ea7ea0
         charging_provider: wirelane
         cpo_created: true
@@ -24567,6 +25624,13 @@ components:
         limit_kwh: 35.0
         limit_duration: 600
         maintenance: true
+        request_origin:
+          ip_address: 203.0.113.42
+          country_name: Germany
+          country_region: BY
+          postal_code: "80331"
+          latitude: 48.1374
+          longitude: 11.5755
     ChargingSessionCustomer:
       example:
         account_id: DEWLN-0123456789
@@ -25160,6 +26224,7 @@ components:
             * `tariff_not_found`: No valid tariff found for customer
             * `invalid_payment_authorization`: No valid payment authorization found for customer
             * `charging_session_already_created`: There is already a charging session running on this charging point
+            * `account_blocked`: The customer account is blocked, see `AccountInfo.blocked_reasons`
             * `ìnternal_error`: Internal error
           enum:
           - charge_point_not_remote_enabled
@@ -25171,6 +26236,7 @@ components:
           - tariff_not_found
           - invalid_payment_authorization
           - charging_session_already_created
+          - account_blocked
           - internal_error
           readOnly: true
           type: string
@@ -25467,7 +26533,7 @@ components:
           serial_number: serial_number
           public_key: 3059301306072A8648CE3D020106082A8648CE3D03010703
           sf_asset_id: 00055c6800055c68ab
-          sf_cp_id: 00055c6800055c68ab
+          sf_cp_id: K7P4M
           status: FREE
           status_update: 2023-04-01T12:00:00+02:00
           evse_id_history:
@@ -25496,7 +26562,7 @@ components:
           serial_number: serial_number
           public_key: 3059301306072A8648CE3D020106082A8648CE3D03010703
           sf_asset_id: 00055c6800055c68ab
-          sf_cp_id: 00055c6800055c68ab
+          sf_cp_id: K7P4M
           status: FREE
           status_update: 2023-04-01T12:00:00+02:00
           evse_id_history:
@@ -25526,6 +26592,184 @@ components:
           creation_date: 2023-04-01T12:00:00+02:00
           status: closed
         openSfCase: true
+    ChargingStationAvailability:
+      description: |
+        Availability timeline of a charging station and its charging points.
+        Data is only available for the last 3 months, so the effective period can start later than the requested one.
+        If the requested period ends more than 3 months ago, the effective period is empty: `date_from` and `date_to` are
+        both the clamp limit (now minus 3 months) and all intervals are empty.
+        The end of the effective period is clamped to now. If the requested period lies entirely in the future,
+        `date_from` and `date_to` are both now and all intervals are empty.
+      example:
+        station_id: 0
+        date_from: 2023-04-01T12:00:00+02:00
+        date_to: 2023-04-01T12:00:00+02:00
+        intervals:
+        - status: online
+          date_from: 2023-04-01T12:00:00+02:00
+          date_to: 2023-04-01T12:00:00+02:00
+          ocpp_status: Faulted
+          error_code: GroundFailure
+          vendor_error_code: vendor_error_code
+          error_info: error_info
+          ocpp_log_id: 54e7c70d-fa97-11e7-b20f-00ffa96d3a77
+        - status: online
+          date_from: 2023-04-01T12:00:00+02:00
+          date_to: 2023-04-01T12:00:00+02:00
+          ocpp_status: Faulted
+          error_code: GroundFailure
+          vendor_error_code: vendor_error_code
+          error_info: error_info
+          ocpp_log_id: 54e7c70d-fa97-11e7-b20f-00ffa96d3a77
+        connectors:
+        - scm_id: 0088209ebda441c9762da2f38a5f233a
+          evse_id: DE*WLN*E0123456789
+          connector_id: 1
+          intervals:
+          - status: online
+            date_from: 2023-04-01T12:00:00+02:00
+            date_to: 2023-04-01T12:00:00+02:00
+            ocpp_status: Faulted
+            error_code: GroundFailure
+            vendor_error_code: vendor_error_code
+            error_info: error_info
+            ocpp_log_id: 54e7c70d-fa97-11e7-b20f-00ffa96d3a77
+          - status: online
+            date_from: 2023-04-01T12:00:00+02:00
+            date_to: 2023-04-01T12:00:00+02:00
+            ocpp_status: Faulted
+            error_code: GroundFailure
+            vendor_error_code: vendor_error_code
+            error_info: error_info
+            ocpp_log_id: 54e7c70d-fa97-11e7-b20f-00ffa96d3a77
+        - scm_id: 0088209ebda441c9762da2f38a5f233a
+          evse_id: DE*WLN*E0123456789
+          connector_id: 1
+          intervals:
+          - status: online
+            date_from: 2023-04-01T12:00:00+02:00
+            date_to: 2023-04-01T12:00:00+02:00
+            ocpp_status: Faulted
+            error_code: GroundFailure
+            vendor_error_code: vendor_error_code
+            error_info: error_info
+            ocpp_log_id: 54e7c70d-fa97-11e7-b20f-00ffa96d3a77
+          - status: online
+            date_from: 2023-04-01T12:00:00+02:00
+            date_to: 2023-04-01T12:00:00+02:00
+            ocpp_status: Faulted
+            error_code: GroundFailure
+            vendor_error_code: vendor_error_code
+            error_info: error_info
+            ocpp_log_id: 54e7c70d-fa97-11e7-b20f-00ffa96d3a77
+      properties:
+        station_id:
+          description: ID of the charging station
+          readOnly: true
+          type: integer
+        date_from:
+          description: |
+            Start of the effective period, i.e. the requested start clamped to the last 3 months.
+            Equals `date_to` (the clamp limit, now minus 3 months) if the requested period ends more than 3 months ago,
+            and equals `date_to` (now) if the requested period lies entirely in the future.
+          example: 2023-04-01T12:00:00+02:00
+          format: date-time
+          readOnly: true
+          type: string
+        date_to:
+          description: |
+            End of the effective period, i.e. the requested end clamped to now, so no interval reaches into the future.
+            Equals `date_from` (the clamp limit, now minus 3 months) if the requested period ends more than 3 months ago,
+            and equals `date_from` (now) if the requested period lies entirely in the future.
+          example: 2023-04-01T12:00:00+02:00
+          format: date-time
+          readOnly: true
+          type: string
+        intervals:
+          description: "Availability intervals of the station, sorted by `date_from`"
+          items:
+            $ref: "#/components/schemas/ChargingStationAvailabilityInterval"
+          readOnly: true
+          type: array
+        connectors:
+          description: Availability of each charging point of the station
+          items:
+            $ref: "#/components/schemas/ChargingStationConnectorAvailability"
+          readOnly: true
+          type: array
+      type: object
+    ChargingStationAvailabilityInterval:
+      description: A period of time during which a charging station or charging point
+        had the same availability status
+      example:
+        status: online
+        date_from: 2023-04-01T12:00:00+02:00
+        date_to: 2023-04-01T12:00:00+02:00
+        ocpp_status: Faulted
+        error_code: GroundFailure
+        vendor_error_code: vendor_error_code
+        error_info: error_info
+        ocpp_log_id: 54e7c70d-fa97-11e7-b20f-00ffa96d3a77
+      properties:
+        status:
+          description: |
+            Availability status during the interval
+              * `online`: Connected to the backend and no error reported. This includes the OCPP status `Unavailable`.
+              * `offline`: Not connected to the backend
+              * `error`: The last StatusNotification reported `Faulted` or an `errorCode` other than `NoError`
+              * `unknown`: No data available for this time
+          enum:
+          - online
+          - offline
+          - error
+          - unknown
+          example: online
+          readOnly: true
+          type: string
+        date_from:
+          description: Start of the interval
+          example: 2023-04-01T12:00:00+02:00
+          format: date-time
+          readOnly: true
+          type: string
+        date_to:
+          description: End of the interval
+          example: 2023-04-01T12:00:00+02:00
+          format: date-time
+          readOnly: true
+          type: string
+        ocpp_status:
+          description: "OCPP status of the StatusNotification the interval is based\
+            \ on, e.g. `Available` or `Faulted`. Omitted if the interval is not based\
+            \ on a StatusNotification."
+          example: Faulted
+          readOnly: true
+          type: string
+        error_code:
+          description: "OCPP `errorCode` of the StatusNotification the interval is\
+            \ based on, e.g. `GroundFailure`. Omitted if the interval is not based\
+            \ on a StatusNotification."
+          example: GroundFailure
+          readOnly: true
+          type: string
+        vendor_error_code:
+          description: OCPP `vendorErrorCode` of the StatusNotification the interval
+            is based on. Omitted if not reported.
+          readOnly: true
+          type: string
+        error_info:
+          description: OCPP `info` of the StatusNotification the interval is based
+            on. Omitted if not reported.
+          readOnly: true
+          type: string
+        ocpp_log_id:
+          description: The `ChargingStationOcppLog.id` of the StatusNotification the
+            interval is based on. Omitted if the interval is not based on a StatusNotification.
+          example: 54e7c70d-fa97-11e7-b20f-00ffa96d3a77
+          pattern: "^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$"
+          readOnly: true
+          type: string
+      type: object
     ChargingStationBaseData:
       description: Charging Station basic data
       example:
@@ -25733,6 +26977,53 @@ components:
           - nonrenewable
           - renewable
           type: string
+      type: object
+    ChargingStationConnectorAvailability:
+      description: Availability timeline of a single charging point of a charging
+        station
+      example:
+        scm_id: 0088209ebda441c9762da2f38a5f233a
+        evse_id: DE*WLN*E0123456789
+        connector_id: 1
+        intervals:
+        - status: online
+          date_from: 2023-04-01T12:00:00+02:00
+          date_to: 2023-04-01T12:00:00+02:00
+          ocpp_status: Faulted
+          error_code: GroundFailure
+          vendor_error_code: vendor_error_code
+          error_info: error_info
+          ocpp_log_id: 54e7c70d-fa97-11e7-b20f-00ffa96d3a77
+        - status: online
+          date_from: 2023-04-01T12:00:00+02:00
+          date_to: 2023-04-01T12:00:00+02:00
+          ocpp_status: Faulted
+          error_code: GroundFailure
+          vendor_error_code: vendor_error_code
+          error_info: error_info
+          ocpp_log_id: 54e7c70d-fa97-11e7-b20f-00ffa96d3a77
+      properties:
+        scm_id:
+          description: The Scm-ID of the connector. See `Connector.scm_id`
+          example: 0088209ebda441c9762da2f38a5f233a
+          readOnly: true
+          type: string
+        evse_id:
+          description: The EVSE-ID of the charging point. See `ConnectorInfo.evseid`
+          example: DE*WLN*E0123456789
+          readOnly: true
+          type: string
+        connector_id:
+          description: ID of the connector as seen from station. See `Connector.connector_id`
+          example: 1
+          readOnly: true
+          type: integer
+        intervals:
+          description: "Availability intervals of the charging point, sorted by `date_from`"
+          items:
+            $ref: "#/components/schemas/ChargingStationAvailabilityInterval"
+          readOnly: true
+          type: array
       type: object
     ChargingStationConnectorBaseData:
       allOf:
@@ -26170,7 +27461,7 @@ components:
           serial_number: serial_number
           public_key: 3059301306072A8648CE3D020106082A8648CE3D03010703
           sf_asset_id: 00055c6800055c68ab
-          sf_cp_id: 00055c6800055c68ab
+          sf_cp_id: K7P4M
           status: FREE
           status_update: 2023-04-01T12:00:00+02:00
           evse_id_history:
@@ -26199,7 +27490,7 @@ components:
           serial_number: serial_number
           public_key: 3059301306072A8648CE3D020106082A8648CE3D03010703
           sf_asset_id: 00055c6800055c68ab
-          sf_cp_id: 00055c6800055c68ab
+          sf_cp_id: K7P4M
           status: FREE
           status_update: 2023-04-01T12:00:00+02:00
           evse_id_history:
@@ -26349,10 +27640,17 @@ components:
           readOnly: true
           type: string
         status:
-          description: Current progress state of the reassignment
+          description: |
+            Current progress state of the reassignment.
+            * `pending`: The reassignment has been requested; no charging point has been migrated to the target station yet.
+            * `in_progress`: The station has connected under the target station ID and at least one charging point has been migrated, but not all charging points of the current station yet.
+            * `completed`: All charging points of the current station are closed (migrated to the target station).
+            * `incomplete`: A charging point connected to the target station whose original charging point could not be found on the current station.
+            * `closed`: The reassignment was closed automatically because it stayed `pending` for too long.
           enum:
           - closed
           - completed
+          - in_progress
           - incomplete
           - pending
           type: string
@@ -26560,7 +27858,7 @@ components:
           validation_domains:
           - validation_domains
           - validation_domains
-          registration_information: "{}"
+          registration_information: {}
           email: email
           vat_number: vat_number
           invoice_logo: invoice_logo
@@ -26616,6 +27914,9 @@ components:
           email_footer: "{\"de\":\"\\nBest Regards,\\n\\nYour Organization Team\\\
             n\\nSome more footer info\",\"en\":\"\\nBest Regards,\\n\\nYour Organization\
             \ Team\\n\\nSome more footer info\"}"
+          card_order_hint: "{\"de\":\"Bestellungen zwischen dem 20.12. und dem 06.01.\
+            \ werden erst ab dem 07.01. versendet.\",\"en\":\"Orders placed between\
+            \ 20 December and 6 January will only be shipped from 7 January.\"}"
           service_level_agreement: Level 1
           highlight_color: "#094a00"
           terms_and_conditions:
@@ -26707,7 +28008,7 @@ components:
           validation_domains:
           - validation_domains
           - validation_domains
-          registration_information: "{}"
+          registration_information: {}
           email: email
           vat_number: vat_number
           invoice_logo: invoice_logo
@@ -26763,6 +28064,9 @@ components:
           email_footer: "{\"de\":\"\\nBest Regards,\\n\\nYour Organization Team\\\
             n\\nSome more footer info\",\"en\":\"\\nBest Regards,\\n\\nYour Organization\
             \ Team\\n\\nSome more footer info\"}"
+          card_order_hint: "{\"de\":\"Bestellungen zwischen dem 20.12. und dem 06.01.\
+            \ werden erst ab dem 07.01. versendet.\",\"en\":\"Orders placed between\
+            \ 20 December and 6 January will only be shipped from 7 January.\"}"
           service_level_agreement: Level 1
           highlight_color: "#094a00"
           terms_and_conditions:
@@ -26848,7 +28152,7 @@ components:
           validation_domains:
           - validation_domains
           - validation_domains
-          registration_information: "{}"
+          registration_information: {}
           email: email
           vat_number: vat_number
           invoice_logo: invoice_logo
@@ -26904,6 +28208,9 @@ components:
           email_footer: "{\"de\":\"\\nBest Regards,\\n\\nYour Organization Team\\\
             n\\nSome more footer info\",\"en\":\"\\nBest Regards,\\n\\nYour Organization\
             \ Team\\n\\nSome more footer info\"}"
+          card_order_hint: "{\"de\":\"Bestellungen zwischen dem 20.12. und dem 06.01.\
+            \ werden erst ab dem 07.01. versendet.\",\"en\":\"Orders placed between\
+            \ 20 December and 6 January will only be shipped from 7 January.\"}"
           service_level_agreement: Level 1
           highlight_color: "#094a00"
           terms_and_conditions:
@@ -27085,9 +28392,9 @@ components:
             readOnly: true
             type: string
           sf_cp_id:
-            description: "The Salesforce ID of the charging point, that represents\
-              \ the \"philosophical\" point."
-            example: 00055c6800055c68ab
+            description: "The salesforce ID of the charging point, that represents\
+              \ the contractual charging point/station."
+            example: K7P4M
             readOnly: true
             type: string
           status:
@@ -27145,7 +28452,7 @@ components:
         serial_number: serial_number
         public_key: 3059301306072A8648CE3D020106082A8648CE3D03010703
         sf_asset_id: 00055c6800055c68ab
-        sf_cp_id: 00055c6800055c68ab
+        sf_cp_id: K7P4M
         status: FREE
         status_update: 2023-04-01T12:00:00+02:00
         evse_id_history:
@@ -27297,7 +28604,7 @@ components:
         serial_number: serial_number
         public_key: 3059301306072A8648CE3D020106082A8648CE3D03010703
         sf_asset_id: 00055c6800055c68ab
-        sf_cp_id: 00055c6800055c68ab
+        sf_cp_id: K7P4M
         status_update: 2023-04-01T12:00:00+02:00
         evse_id_history:
         - asset_id: 00b82988-4f8b-4615-bfaf-9c427ee202d6
@@ -27744,12 +29051,51 @@ components:
       required:
       - name
       type: object
+    CreateOcppLogAnalysisRequest:
+      example:
+        session_id: 54e7c70d-fa97-11e7-b20f-00ffa96d3a77
+        since: 2023-04-01T12:00:00+02:00
+        until: 2023-04-01T12:00:00+02:00
+        language: de
+      properties:
+        session_id:
+          description: The `ChargingSession.session_id` (UUIDv4) of the session to
+            analyse
+          example: 54e7c70d-fa97-11e7-b20f-00ffa96d3a77
+          pattern: "^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$"
+          type: string
+        since:
+          description: Start of the analysed time window. Only used if the window
+            cannot be derived from the session.
+          example: 2023-04-01T12:00:00+02:00
+          format: date-time
+          type: string
+        until:
+          description: End of the analysed time window. Only used if the window cannot
+            be derived from the session.
+          example: 2023-04-01T12:00:00+02:00
+          format: date-time
+          type: string
+        language:
+          description: Language of the analysis result
+          enum:
+          - de
+          - en
+          example: de
+          type: string
+      required:
+      - language
+      - session_id
+      - since
+      - until
+      type: object
     CreateOrganizationGroupRequest:
       example:
         name: Group1
         organizations:
         - organizations
         - organizations
+        assign_to_new_organizations: false
       properties:
         name:
           description: Name of the organization group
@@ -27761,6 +29107,11 @@ components:
           items:
             type: string
           type: array
+        assign_to_new_organizations:
+          default: false
+          description: New organizations created under the owner of the group are
+            added to it automatically
+          type: boolean
       required:
       - name
       type: object
@@ -28168,7 +29519,7 @@ components:
           validation_domains:
           - validation_domains
           - validation_domains
-          registration_information: "{}"
+          registration_information: {}
           email: email
           vat_number: vat_number
           invoice_logo: invoice_logo
@@ -28224,6 +29575,9 @@ components:
           email_footer: "{\"de\":\"\\nBest Regards,\\n\\nYour Organization Team\\\
             n\\nSome more footer info\",\"en\":\"\\nBest Regards,\\n\\nYour Organization\
             \ Team\\n\\nSome more footer info\"}"
+          card_order_hint: "{\"de\":\"Bestellungen zwischen dem 20.12. und dem 06.01.\
+            \ werden erst ab dem 07.01. versendet.\",\"en\":\"Orders placed between\
+            \ 20 December and 6 January will only be shipped from 7 January.\"}"
           service_level_agreement: Level 1
           highlight_color: "#094a00"
           terms_and_conditions:
@@ -28338,7 +29692,7 @@ components:
             validation_domains:
             - validation_domains
             - validation_domains
-            registration_information: "{}"
+            registration_information: {}
             email: email
             vat_number: vat_number
             invoice_logo: invoice_logo
@@ -28395,6 +29749,9 @@ components:
             email_footer: "{\"de\":\"\\nBest Regards,\\n\\nYour Organization Team\\\
               n\\nSome more footer info\",\"en\":\"\\nBest Regards,\\n\\nYour Organization\
               \ Team\\n\\nSome more footer info\"}"
+            card_order_hint: "{\"de\":\"Bestellungen zwischen dem 20.12. und dem 06.01.\
+              \ werden erst ab dem 07.01. versendet.\",\"en\":\"Orders placed between\
+              \ 20 December and 6 January will only be shipped from 7 January.\"}"
             service_level_agreement: Level 1
             highlight_color: "#094a00"
             terms_and_conditions:
@@ -28481,7 +29838,7 @@ components:
             validation_domains:
             - validation_domains
             - validation_domains
-            registration_information: "{}"
+            registration_information: {}
             email: email
             vat_number: vat_number
             invoice_logo: invoice_logo
@@ -28538,6 +29895,9 @@ components:
             email_footer: "{\"de\":\"\\nBest Regards,\\n\\nYour Organization Team\\\
               n\\nSome more footer info\",\"en\":\"\\nBest Regards,\\n\\nYour Organization\
               \ Team\\n\\nSome more footer info\"}"
+            card_order_hint: "{\"de\":\"Bestellungen zwischen dem 20.12. und dem 06.01.\
+              \ werden erst ab dem 07.01. versendet.\",\"en\":\"Orders placed between\
+              \ 20 December and 6 January will only be shipped from 7 January.\"}"
             service_level_agreement: Level 1
             highlight_color: "#094a00"
             terms_and_conditions:
@@ -28698,7 +30058,7 @@ components:
           validation_domains:
           - validation_domains
           - validation_domains
-          registration_information: "{}"
+          registration_information: {}
         ci:
           web_color_main:
             hex: "#094a00"
@@ -28772,7 +30132,7 @@ components:
             validation_domains:
             - validation_domains
             - validation_domains
-            registration_information: "{}"
+            registration_information: {}
           customer_data_setting:
             card_identifier: printed_number
             card_accept_ordering: true
@@ -28847,7 +30207,7 @@ components:
             validation_domains:
             - validation_domains
             - validation_domains
-            registration_information: "{}"
+            registration_information: {}
           customer_data_setting:
             card_identifier: printed_number
             card_accept_ordering: true
@@ -28963,7 +30323,7 @@ components:
           validation_domains:
           - validation_domains
           - validation_domains
-          registration_information: "{}"
+          registration_information: {}
           email: email
           vat_number: vat_number
           invoice_logo: invoice_logo
@@ -29019,6 +30379,9 @@ components:
           email_footer: "{\"de\":\"\\nBest Regards,\\n\\nYour Organization Team\\\
             n\\nSome more footer info\",\"en\":\"\\nBest Regards,\\n\\nYour Organization\
             \ Team\\n\\nSome more footer info\"}"
+          card_order_hint: "{\"de\":\"Bestellungen zwischen dem 20.12. und dem 06.01.\
+            \ werden erst ab dem 07.01. versendet.\",\"en\":\"Orders placed between\
+            \ 20 December and 6 January will only be shipped from 7 January.\"}"
           service_level_agreement: Level 1
           highlight_color: "#094a00"
           terms_and_conditions:
@@ -29107,7 +30470,7 @@ components:
           validation_domains:
           - validation_domains
           - validation_domains
-          registration_information: "{}"
+          registration_information: {}
         customer_data_setting:
           card_identifier: printed_number
           card_accept_ordering: true
@@ -29367,11 +30730,11 @@ components:
         type: Feature
         geometry:
           type: Point
-          coordinates: "{}"
+          coordinates: {}
         properties:
           radius: 16
           count: 42
-          bounds: "{}"
+          bounds: {}
           boundary:
             north_east:
               latitude: 48.1451
@@ -29410,11 +30773,11 @@ components:
         - type: Feature
           geometry:
             type: Point
-            coordinates: "{}"
+            coordinates: {}
           properties:
             radius: 16
             count: 42
-            bounds: "{}"
+            bounds: {}
             boundary:
               north_east:
                 latitude: 48.1451
@@ -29434,11 +30797,11 @@ components:
         - type: Feature
           geometry:
             type: Point
-            coordinates: "{}"
+            coordinates: {}
           properties:
             radius: 16
             count: 42
-            bounds: "{}"
+            bounds: {}
             boundary:
               north_east:
                 latitude: 48.1451
@@ -29473,7 +30836,7 @@ components:
       description: RFC 7946 GeoJSON Geometry Object.
       example:
         type: Point
-        coordinates: "{}"
+        coordinates: {}
       properties:
         type:
           default: Point
@@ -29498,7 +30861,7 @@ components:
       example:
         radius: 16
         count: 42
-        bounds: "{}"
+        bounds: {}
         boundary:
           north_east:
             latitude: 48.1451
@@ -30000,6 +31363,8 @@ components:
           tenant: dewln
           email: test@example.com
           status: ACTIVE
+          blocked_reasons:
+          - UNPAID_INVOICE
           terminationRequested: 2023-04-01T12:00:00+02:00
           terminationEffective: 2023-04-01T12:00:00+02:00
           terminationReason: terminationReason
@@ -30008,8 +31373,6 @@ components:
           updated: 2023-04-01T12:00:00+02:00
           authDate: 2023-04-01T12:00:00+02:00
           anonymized: false
-          blocked_reasons:
-          - UNPAID_INVOICE
           blocked_manually_reason: Customer violated the ToS.
           transactional_invoicing: true
           additional_payment_methods:
@@ -30075,6 +31438,13 @@ components:
         date: 2023-04-01T12:00:00+02:00
         description: description
         action: action
+        request_origin:
+          ip_address: 203.0.113.42
+          country_name: Germany
+          country_region: BY
+          postal_code: "80331"
+          latitude: 48.1374
+          longitude: 11.5755
       properties:
         date:
           description: Date and time
@@ -30085,6 +31455,8 @@ components:
           type: string
         action:
           type: string
+        request_origin:
+          $ref: "#/components/schemas/RequestOrigin"
       type: object
     MemberBalance:
       example:
@@ -30247,7 +31619,7 @@ components:
           validation_domains:
           - validation_domains
           - validation_domains
-          registration_information: "{}"
+          registration_information: {}
         status: pending
         type: emp
         isEmp: false
@@ -30327,7 +31699,7 @@ components:
           validation_domains:
           - validation_domains
           - validation_domains
-          registration_information: "{}"
+          registration_information: {}
         status: pending
         type: emp
         isEmp: false
@@ -31279,6 +32651,128 @@ components:
       - operator_name
       - status
       type: object
+    OcppLogAnalysis:
+      description: AI analysis of the OCPP log of a charging session
+      example:
+        id: 54e7c70d-fa97-11e7-b20f-00ffa96d3a77
+        status: pending
+        session_id: 54e7c70d-fa97-11e7-b20f-00ffa96d3a77
+        station_id: 0
+        scm_id: 0088209ebda441c9762da2f38a5f233a
+        since: 2023-04-01T12:00:00+02:00
+        until: 2023-04-01T12:00:00+02:00
+        language: de
+        model: model
+        result: result
+        error_message: error_message
+        truncated: true
+        input_tokens: 6
+        output_tokens: 1
+        created_by: DEWLN-0123456789
+        created_at: 2023-04-01T12:00:00+02:00
+        completed_at: 2023-04-01T12:00:00+02:00
+      properties:
+        id:
+          example: 54e7c70d-fa97-11e7-b20f-00ffa96d3a77
+          pattern: "^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$"
+          readOnly: true
+          type: string
+        status:
+          description: |
+            Processing status of the analysis
+              * `pending`: The analysis has been requested and waits to be processed
+              * `processing`: The analysis is running
+              * `completed`: The analysis is done, see `result`
+              * `failed`: The analysis failed, see `error_message`
+          enum:
+          - pending
+          - processing
+          - completed
+          - failed
+          readOnly: true
+          type: string
+        session_id:
+          description: The `ChargingSession.session_id` (UUIDv4) of the analysed session
+          example: 54e7c70d-fa97-11e7-b20f-00ffa96d3a77
+          pattern: "^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$"
+          readOnly: true
+          type: string
+        station_id:
+          description: ID of the charging station
+          readOnly: true
+          type: integer
+        scm_id:
+          description: The Scm-ID of the connector. See `Connector.scm_id`
+          example: 0088209ebda441c9762da2f38a5f233a
+          readOnly: true
+          type: string
+        since:
+          description: Start of the analysed time window
+          example: 2023-04-01T12:00:00+02:00
+          format: date-time
+          readOnly: true
+          type: string
+        until:
+          description: End of the analysed time window
+          example: 2023-04-01T12:00:00+02:00
+          format: date-time
+          readOnly: true
+          type: string
+        language:
+          description: Language of the analysis result
+          enum:
+          - de
+          - en
+          example: de
+          readOnly: true
+          type: string
+        model:
+          description: AI model used for the analysis
+          readOnly: true
+          type: string
+        result:
+          description: Analysis result as Markdown. `null` until the analysis is completed.
+          readOnly: true
+          type: string
+        error_message:
+          description: Reason why the analysis failed. `null` unless the status is
+            `failed`.
+          readOnly: true
+          type: string
+        truncated:
+          description: "If `true`, the OCPP log was too long and only a part of it\
+            \ was analysed"
+          readOnly: true
+          type: boolean
+        input_tokens:
+          description: Number of input tokens used. `null` until the analysis is completed.
+          readOnly: true
+          type: integer
+        output_tokens:
+          description: Number of output tokens used. `null` until the analysis is
+            completed.
+          readOnly: true
+          type: integer
+        created_by:
+          description: ID of the account that requested the analysis
+          example: DEWLN-0123456789
+          pattern: "^[a-zA-Z0-9-_]+$"
+          readOnly: true
+          type: string
+        created_at:
+          description: Date and time
+          example: 2023-04-01T12:00:00+02:00
+          format: date-time
+          readOnly: true
+          type: string
+        completed_at:
+          description: Date and time the analysis was completed or failed. `null`
+            while the analysis is pending or processing.
+          example: 2023-04-01T12:00:00+02:00
+          format: date-time
+          readOnly: true
+          type: string
+      type: object
     OicpAgreementSuboperator:
       example:
         id: 54e7c70d-fa97-11e7-b20f-00ffa96d3a77
@@ -31882,7 +33376,7 @@ components:
         delivery_type: delivery
         tracking_number: tracking_number
         transport_number: "10002655"
-        project_id: "10002655"
+        icr_number: ICR++000002771-X##
         production_date: 2023-04-01
         transmitted_date: 2023-04-01
         router_serial_number: "6000337203"
@@ -32049,8 +33543,11 @@ components:
           example: "10002655"
           readOnly: true
           type: string
-        project_id:
-          example: "10002655"
+        icr_number:
+          description: "ICR number of the charging point in its wrapped format with\
+            \ prefix ICR++, 9 digits, a dash, a check digit or X, and a closing double\
+            \ hash"
+          example: ICR++000002771-X##
           readOnly: true
           type: string
         production_date:
@@ -32333,7 +33830,7 @@ components:
         tap_lavego_id: tap_lavego_id
         delivery_type: delivery
         desired_delivery_date: 2023-04-01
-        project_id: project_id
+        icr_number: ICR++000002771-X##
         has_router: true
         has_switch: true
         has_tap_terminal: true
@@ -32378,7 +33875,12 @@ components:
           example: 2023-04-01
           format: date
           type: string
-        project_id:
+        icr_number:
+          description: "ICR number of the charging point in its wrapped format with\
+            \ prefix ICR++, 9 digits, a dash, a check digit or X, and a closing double\
+            \ hash. Null or an empty string clears the value."
+          example: ICR++000002771-X##
+          pattern: "^ICR\\+\\+[0-9]{9}-[0-9X]##$"
           type: string
         has_router:
           description: True if the charging station will be bundled with a router.
@@ -32576,6 +34078,8 @@ components:
             $ref: "#/components/schemas/Organization_allOf_invoice_footer"
           email_footer:
             $ref: "#/components/schemas/Organization_allOf_email_footer"
+          card_order_hint:
+            $ref: "#/components/schemas/Organization_allOf_card_order_hint"
           service_level_agreement:
             description: Service Level Agreement for the organization
             example: Level 1
@@ -32683,7 +34187,7 @@ components:
         validation_domains:
         - validation_domains
         - validation_domains
-        registration_information: "{}"
+        registration_information: {}
         email: email
         vat_number: vat_number
         invoice_logo: invoice_logo
@@ -32739,6 +34243,9 @@ components:
         email_footer: "{\"de\":\"\\nBest Regards,\\n\\nYour Organization Team\\n\\\
           nSome more footer info\",\"en\":\"\\nBest Regards,\\n\\nYour Organization\
           \ Team\\n\\nSome more footer info\"}"
+        card_order_hint: "{\"de\":\"Bestellungen zwischen dem 20.12. und dem 06.01.\
+          \ werden erst ab dem 07.01. versendet.\",\"en\":\"Orders placed between\
+          \ 20 December and 6 January will only be shipped from 7 January.\"}"
         service_level_agreement: Level 1
         highlight_color: "#094a00"
         terms_and_conditions:
@@ -32789,6 +34296,10 @@ components:
             items:
               type: string
             type: array
+          assign_to_new_organizations:
+            description: New organizations created under the owner of the group are
+              added to it automatically
+            type: boolean
         type: object
       example:
         id: "12"
@@ -32796,6 +34307,7 @@ components:
         organizations:
         - organizations
         - organizations
+        assign_to_new_organizations: true
     OrganizationGroupInfo:
       example:
         id: "12"
@@ -32879,7 +34391,7 @@ components:
         validation_domains:
         - validation_domains
         - validation_domains
-        registration_information: "{}"
+        registration_information: {}
       properties:
         id:
           description: ID of the organization
@@ -33724,6 +35236,8 @@ components:
         tenant: dewln
         last_display_text: 2023-04-01T12:00:00+02:00
         last_display_text_message: last_display_text_message
+        conversion_rate: 87
+        successful_reservations: 42
       properties:
         id:
           readOnly: true
@@ -33853,6 +35367,27 @@ components:
           description: Content of the last display text on the Payment Terminal
           readOnly: true
           type: string
+        conversion_rate:
+          default: 0
+          description: "Success rate in percent of the reservation requests to the\
+            \ Payment Terminal in the last 30 days, recalculated daily. 0 if there\
+            \ were no reservation requests in that period."
+          example: 87
+          format: int32
+          maximum: 100
+          minimum: 0
+          readOnly: true
+          type: integer
+        successful_reservations:
+          default: 0
+          description: "Number of successful reservations (authorizations not in status\
+            \ REQUESTED or FAILED) of the Payment Terminal in the last 30 days, recalculated\
+            \ daily. 0 if there were none in that period."
+          example: 42
+          format: int32
+          minimum: 0
+          readOnly: true
+          type: integer
       type: object
     PaymentTerminalAuthorization:
       description: Authorization for a Payment Terminal.
@@ -33878,6 +35413,8 @@ components:
         session_price: 5
         session_id: session_id
         card_number: card_number
+        reservation_requested: 2023-04-01T12:00:00+02:00
+        failure_reason: failure_reason
       properties:
         id:
           readOnly: true
@@ -33896,17 +35433,21 @@ components:
           readOnly: true
           type: string
         reserved:
-          description: Date and time
+          description: Date and time of the successful reservation on the Payment
+            Terminal. Empty for status REQUESTED and FAILED.
           example: 2023-04-01T12:00:00+02:00
           format: date-time
           readOnly: true
           type: string
         reserved_amount:
+          description: Reserved amount. Empty for status REQUESTED and FAILED.
           example: 234.56
           format: float
           readOnly: true
           type: number
         reserved_receipt_no:
+          description: Receipt number of the reservation. Empty for status REQUESTED
+            and FAILED.
           readOnly: true
           type: string
         booked:
@@ -33945,11 +35486,18 @@ components:
           readOnly: true
           type: string
         status:
+          description: "Status of the authorization. REQUESTED means the reservation\
+            \ was requested on the Payment Terminal and no card was presented (pending,\
+            \ timed out or aborted). FAILED means the Payment Terminal or the payment\
+            \ host failed the reservation request (e.g. authorization declined, host\
+            \ or Payment Terminal not reachable), see failure_reason."
           enum:
           - UNKNOWN
           - RESERVED
           - BOOKED
           - REFUNDED
+          - REQUESTED
+          - FAILED
           readOnly: true
           type: string
         expiry:
@@ -33965,6 +35513,18 @@ components:
           readOnly: true
           type: string
         card_number:
+          readOnly: true
+          type: string
+        reservation_requested:
+          description: Date and time the reservation was requested on the Payment
+            Terminal. May be empty for older authorizations.
+          example: 2023-04-01T12:00:00+02:00
+          format: date-time
+          readOnly: true
+          type: string
+        failure_reason:
+          description: Error reported by the Payment Terminal or the payment host
+            for a failed reservation request. Only set for status FAILED.
           readOnly: true
           type: string
       type: object
@@ -34000,6 +35560,8 @@ components:
           tenant: dewln
           last_display_text: 2023-04-01T12:00:00+02:00
           last_display_text_message: last_display_text_message
+          conversion_rate: 87
+          successful_reservations: 42
       properties:
         ip:
           description: The IP of the Payment Terminal
@@ -35571,6 +37133,12 @@ components:
             example: true
             readOnly: true
             type: boolean
+          resendable:
+            description: Whether the receipt can be resent by mail; false for ad-hoc
+              receipts without a known email address
+            example: true
+            readOnly: true
+            type: boolean
           status:
             description: |
               Status of the receipt.
@@ -35609,6 +37177,7 @@ components:
         paymentTransactionId: 017c1115-a0c3-49cd-9660-067a3968e3cc
         paymentTransactionProcessor: novalnet_adhoc
         refundable: true
+        resendable: true
         owner: dewln
     ReceiptInfo:
       example:
@@ -36852,6 +38421,41 @@ components:
           example: Remote start performed successfully.
           type: string
       type: object
+    RequestOrigin:
+      description: Origin of an end-user request (IP address and the location derived
+        from it at the edge)
+      example:
+        ip_address: 203.0.113.42
+        country_name: Germany
+        country_region: BY
+        postal_code: "80331"
+        latitude: 48.1374
+        longitude: 11.5755
+      properties:
+        ip_address:
+          description: IPv4 or IPv6 address of the end user
+          example: 203.0.113.42
+          type: string
+        country_name:
+          example: Germany
+          type: string
+        country_region:
+          description: ISO 3166-2 subdivision code of the region (without country
+            prefix)
+          example: BY
+          type: string
+        postal_code:
+          example: "80331"
+          type: string
+        latitude:
+          example: 48.1374
+          format: double
+          type: number
+        longitude:
+          example: 11.5755
+          format: double
+          type: number
+      type: object
     ResetPasswordRequest:
       description: "@deprecated: Use `requestTenantAccountPasswordReset` instead"
       example:
@@ -37141,6 +38745,12 @@ components:
       allOf:
       - $ref: "#/components/schemas/Router"
       - properties:
+          config_deployable:
+            description: Whether a configuration can be built and deployed for this
+              router (depends on its firmware version).
+            example: false
+            readOnly: true
+            type: boolean
           manual_payment_terminal_discovery_support:
             description: |
               If true, the router supports manual payment terminal discovery using its ipv4 address.
@@ -37149,6 +38759,14 @@ components:
             example: true
             readOnly: true
             type: boolean
+          wan_state:
+            description: "WAN connection currently used by the router, as reported\
+              \ by Teltonika RMS (last known state). Null if unknown."
+            enum:
+            - WIRED
+            - MOBILE
+            readOnly: true
+            type: string
         type: object
       description: Router with additional info about its configuration.
       example:
@@ -37166,7 +38784,57 @@ components:
         name: ""
         owner: dewln
         password: RoUt3r!P@ssw0rd
+        config_deployable: false
         manual_payment_terminal_discovery_support: true
+        wan_state: WIRED
+    RouterLogHistory:
+      description: Log History for a Router.
+      example:
+        serial: "1234567890"
+        date: 2023-04-01T12:00:00+02:00
+        type: error
+        message: VPN connection lost
+      properties:
+        serial:
+          description: 10 digit serial number of the related Router
+          example: "1234567890"
+          pattern: "^[0-9]{10}$"
+          readOnly: true
+          type: string
+        date:
+          description: Date and time of the log message
+          example: 2023-04-01T12:00:00+02:00
+          format: date-time
+          readOnly: true
+          type: string
+        type:
+          description: type of log message
+          enum:
+          - info
+          - error
+          example: error
+          readOnly: true
+          type: string
+        message:
+          description: log message
+          example: VPN connection lost
+          readOnly: true
+          type: string
+      type: object
+    RouterRootPassword:
+      description: Root password of a router.
+      example:
+        root_password: RoUt3r!P@ssw0rd
+      properties:
+        root_password:
+          description: Root password for accessing the router
+          example: RoUt3r!P@ssw0rd
+          format: password
+          readOnly: true
+          type: string
+      required:
+      - root_password
+      type: object
     SaasInvoice:
       example:
         id: 2023-06-99
@@ -37739,18 +39407,23 @@ components:
         id: 1002
         tariff_id: dewln-1111991
         tenant: dewln
+        inherited: false
         name:
         - language: en
           text: Wirelane employees
         - language: de
           text: Wirelane Mitarbeiter
-        priority: 200
+        priority: 3100
+        custom_priority: 100
         creation_date: 2023-04-01T12:00:00+02:00
         update_date: 2023-04-01T12:00:00+02:00
         active_from_date: 2023-04-01T12:00:00+02:00
         active_until_date: 2023-04-01T12:00:00+02:00
         capacity_filter_from: 160
         capacity_filter_to: 1205
+        solution_type_filter:
+        - bmvi
+        - bmvi
         tariff_type: customer
         roaming_platform: none
         for_unregistered_customers: false
@@ -38014,6 +39687,13 @@ components:
           example: dewln
           readOnly: true
           type: string
+        inherited:
+          description: |
+            True if the tariff belongs to the CPO (parent tenant) of the organization and is only listed because of the organization's tariff settings
+            (`own_with_cpo_fallback` or `cpo_only` for its `tariff_type`). Inherited tariffs cannot be changed by the organization.
+          example: false
+          readOnly: true
+          type: boolean
         name:
           example:
           - language: en
@@ -38025,13 +39705,30 @@ components:
           type: array
         priority:
           description: |
-            It prioritizes the tariff - highest priority will show up to the user and in case of equality, newest tariff wins.
-            Prioritization happens within separate buckets:
-            * First bucket - all tariffs with values in marketplace_ids, `for_member = true`; sorted by their priorities
-            * Second bucket - all legacy tariffs (`for_marketplace = false`, `for_customer = false`, `for_member = false`); sorted by their priorities
-            * Third bucket - all tariffs with `for_customer = true`, sorted by their priorities
-            * Fourth bucket - all tariffs with values in marketplace_ids and `for_marketplace = true`, sorted by their priorities
-          example: 200
+            The priority of the tariff, calculated by the server as the sum of the weights of its active filters plus `custom_priority`.
+            The tariff with the highest priority wins. A value sent in a request is ignored.
+            Filter weights (each filter counts at most once):
+            * 3000: `member_groups` is not empty
+            * 3000: `organization_eligibility_list.whitelist` is not empty
+            * 3000: `rule_external_emps_allowed` is not empty on every active price
+            * 2000: `plans` is not empty
+            * 2000: `rule_cpos_allowed` or `rule_cpos_not_allowed` is not empty on every active price
+            * 2000: `point_groups`, `rule_external_point_groups_allowed` or `rule_external_point_groups_not_allowed` is not empty on every active price
+            * 1000: `capacity_filter_from` or `capacity_filter_to` is set
+            * 1000: `solution_type_filter` is not empty
+            * 1000: `rule_charging_type` is set on every active price
+          example: 3100
+          readOnly: true
+          type: integer
+        custom_priority:
+          description: |
+            The user-set part of the tariff priority (see `priority`), which is added to the weights of the active filters.
+            A tariff ranks above another one when its custom priority exceeds the other tariff's custom priority by more
+            than the difference of their filter weights. A lead of more than 18000 (the highest possible filter weight sum)
+            therefore always ranks a tariff above the other one, whatever filters either tariff has.
+            Defaults to 0 when omitted on create; stays unchanged when omitted on update.
+          example: 100
+          maximum: 99999
           minimum: 0
           type: integer
         creation_date:
@@ -38066,6 +39763,23 @@ components:
           maximum: 2000
           minimum: 0
           type: integer
+        solution_type_filter:
+          description: Applicable for points of charging stations with one of these
+            solution types; empty/null = all
+          items:
+            enum:
+            - bmvi
+            - business_solution
+            - caas_acquired
+            - caas_enterprise
+            - caas_public
+            - caas_smb
+            - ghg_only
+            - hardware_only
+            - hardware_software
+            - software_only
+            type: string
+          type: array
         tariff_type:
           description: |
             The type of this tariff.
@@ -38169,7 +39883,167 @@ components:
           type: boolean
       required:
       - name
-      - priority
+      type: object
+    TariffSettings:
+      description: |
+        Defines per tariff type (see `Tariff.tariff_type`) which tariffs apply to the organization:
+        * `own_only`: Only the organization's own tariffs.
+        * `own_with_cpo_fallback`: The organization's own tariffs, followed by the tariffs of its CPO (parent tenant) as fallback.
+        * `cpo_only`: Only the tariffs of its CPO (parent tenant). The organization cannot create own tariffs of this type.
+      example:
+        customer: own_only
+        member: own_only
+        marketplace: own_only
+        cpo_roaming: own_only
+        direct_payment: own_only
+        contactless_payment: own_only
+        direct_charging_cpo: own_only
+      properties:
+        customer:
+          description: "Tariffs of type `customer`: For registered customers via App\
+            \ or RFID authorization."
+          enum:
+          - own_only
+          - own_with_cpo_fallback
+          - cpo_only
+          example: own_only
+          type: string
+        member:
+          description: "Tariffs of type `member`: For registered members of an CPO."
+          enum:
+          - own_only
+          - own_with_cpo_fallback
+          - cpo_only
+          example: own_only
+          type: string
+        marketplace:
+          description: "Tariffs of type `marketplace`: Marketplace offered between\
+            \ CPOs."
+          enum:
+          - own_only
+          - own_with_cpo_fallback
+          - cpo_only
+          example: own_only
+          type: string
+        cpo_roaming:
+          description: "Tariffs of type `cpo_roaming`: CPO Roaming tariff provided\
+            \ to the roaming partners."
+          enum:
+          - own_only
+          - own_with_cpo_fallback
+          - cpo_only
+          example: own_only
+          type: string
+        direct_payment:
+          description: "Tariffs of type `direct_payment`: Ad-hoc payment via direct\
+            \ payment page."
+          enum:
+          - own_only
+          - own_with_cpo_fallback
+          - cpo_only
+          example: own_only
+          type: string
+        contactless_payment:
+          description: "Tariffs of type `contactless_payment`: Ad-hoc payment via\
+            \ payment terminal."
+          enum:
+          - own_only
+          - own_with_cpo_fallback
+          - cpo_only
+          example: own_only
+          type: string
+        direct_charging_cpo:
+          description: "Tariffs of type `direct_charging_cpo`: Ad-hoc payment via\
+            \ direct payment page of the CPO."
+          enum:
+          - own_only
+          - own_with_cpo_fallback
+          - cpo_only
+          example: own_only
+          type: string
+      required:
+      - contactless_payment
+      - cpo_roaming
+      - customer
+      - direct_charging_cpo
+      - direct_payment
+      - marketplace
+      - member
+      type: object
+    TariffSettingsUpdateRequest:
+      description: Tariff settings update request payload. Tariff types that are omitted
+        stay unchanged.
+      example:
+        customer: own_only
+        member: own_only
+        marketplace: own_only
+        cpo_roaming: own_only
+        direct_payment: own_only
+        contactless_payment: own_only
+        direct_charging_cpo: own_only
+      properties:
+        customer:
+          description: "Tariffs of type `customer`: For registered customers via App\
+            \ or RFID authorization."
+          enum:
+          - own_only
+          - own_with_cpo_fallback
+          - cpo_only
+          example: own_only
+          type: string
+        member:
+          description: "Tariffs of type `member`: For registered members of an CPO."
+          enum:
+          - own_only
+          - own_with_cpo_fallback
+          - cpo_only
+          example: own_only
+          type: string
+        marketplace:
+          description: "Tariffs of type `marketplace`: Marketplace offered between\
+            \ CPOs."
+          enum:
+          - own_only
+          - own_with_cpo_fallback
+          - cpo_only
+          example: own_only
+          type: string
+        cpo_roaming:
+          description: "Tariffs of type `cpo_roaming`: CPO Roaming tariff provided\
+            \ to the roaming partners."
+          enum:
+          - own_only
+          - own_with_cpo_fallback
+          - cpo_only
+          example: own_only
+          type: string
+        direct_payment:
+          description: "Tariffs of type `direct_payment`: Ad-hoc payment via direct\
+            \ payment page."
+          enum:
+          - own_only
+          - own_with_cpo_fallback
+          - cpo_only
+          example: own_only
+          type: string
+        contactless_payment:
+          description: "Tariffs of type `contactless_payment`: Ad-hoc payment via\
+            \ payment terminal."
+          enum:
+          - own_only
+          - own_with_cpo_fallback
+          - cpo_only
+          example: own_only
+          type: string
+        direct_charging_cpo:
+          description: "Tariffs of type `direct_charging_cpo`: Ad-hoc payment via\
+            \ direct payment page of the CPO."
+          enum:
+          - own_only
+          - own_with_cpo_fallback
+          - cpo_only
+          example: own_only
+          type: string
       type: object
     TextLink:
       description: "@deprecated: will always be empty. Use parents `url_resources`\
@@ -38464,6 +40338,8 @@ components:
           tenant: dewln
           email: test@example.com
           status: ACTIVE
+          blocked_reasons:
+          - UNPAID_INVOICE
           terminationRequested: 2023-04-01T12:00:00+02:00
           terminationEffective: 2023-04-01T12:00:00+02:00
           terminationReason: terminationReason
@@ -38471,10 +40347,15 @@ components:
       description: Token order config object
       example:
         token_order_limit: 0
+        order_hint: order_hint
       properties:
         token_order_limit:
           description: The maximum number of tokens that can be ordered
           type: integer
+        order_hint:
+          description: "Hint for the customer when ordering RFID cards, in the requested\
+            \ language. Absent when the organization has none."
+          type: string
       type: object
     TokenOrderCreateRequest:
       description: Token order create request
@@ -38791,7 +40672,7 @@ components:
       example:
         evseid: DE*WLN*E0123456789
         sf_asset_id: 00055c6800055c68ab
-        sf_cp_id: 00055c6800055c68ab
+        sf_cp_id: K7P4M
         serial_number: 5392aC
         plug_type: TYPE_2
         charging_type: AC
@@ -38801,9 +40682,10 @@ components:
       properties:
         evseid:
           description: "EVSE-ID (in the form of \"{Country Code}{CPO ID}E{Alpha Numeric\
-            \ Charge Point ID}\")"
+            \ Charge Point ID}\", optionally followed by \"*\" and a suffix of 1-2\
+            \ digits, e.g. \"DE*WLN*E1001004*1\")"
           example: DE*WLN*E0123456789
-          pattern: "^[A-Z]{2}\\*?[0-9A-Z]{3}\\*?E[0-9A-Z]{1,30}$"
+          pattern: "^[A-Z]{2}\\*?[0-9A-Z]{3}\\*?E[0-9A-Z]{1,30}(\\*[0-9]{1,2})?$"
           type: string
         sf_asset_id:
           description: "The Salesforce ID of the charging point, that represents the\
@@ -38811,9 +40693,16 @@ components:
           example: 00055c6800055c68ab
           type: string
         sf_cp_id:
-          description: "The Salesforce ID of the charging point, that represents the\
-            \ \"philosophical\" point."
-          example: 00055c6800055c68ab
+          description: "The salesforce ID of the charging point, that represents the\
+            \ contractual charging point/station. If set, it must match `^[2-9A-HJ-NP-Z]{5}$`.\
+            \ It is required for stations with charging_provider `emc`, in any onboarding\
+            \ status (including `done`). It is optional when the station ID contains\
+            \ \"test\", when the EVSE-ID of the connector contains \"test\" (both\
+            \ case-insensitive), or when the evseid is empty or not set. A request\
+            \ violating this is rejected with 400. The onboarding status cannot be\
+            \ set to `done` while an active point that is not exempt has no valid\
+            \ sf_cp_id."
+          example: K7P4M
           type: string
         serial_number:
           description: The serial number of a charging point/connector hardware device
@@ -38978,6 +40867,7 @@ components:
         organizations:
         - organizations
         - organizations
+        assign_to_new_organizations: true
       properties:
         name:
           description: Name of the organization group
@@ -38985,10 +40875,15 @@ components:
           maxLength: 255
           type: string
         organizations:
-          description: List of organizations that belong to the group
+          description: List of organizations that belong to the group. Replaces the
+            stored list; omit it to keep the stored members.
           items:
             type: string
           type: array
+        assign_to_new_organizations:
+          description: New organizations created under the owner of the group are
+            added to it automatically. Omit it to keep the stored value.
+          type: boolean
       required:
       - name
       type: object
@@ -39476,6 +41371,15 @@ components:
         nSome more footer info\"}"
       properties: {}
       type: object
+    Organization_allOf_card_order_hint:
+      description: |
+        Hint shown to customers when ordering RFID cards.
+        Each property key must be an [ISO 639-1](https://en.wikipedia.org/wiki/List_of_ISO_639-1_codes) language code and the value the hint text in that language.
+      example: "{\"de\":\"Bestellungen zwischen dem 20.12. und dem 06.01. werden erst\
+        \ ab dem 07.01. versendet.\",\"en\":\"Orders placed between 20 December and\
+        \ 6 January will only be shipped from 7 January.\"}"
+      properties: {}
+      type: object
     PlansStatistics_activeSubscriptions_inner:
       example:
         plan_name: plan_name
@@ -39551,6 +41455,7 @@ x-shared:
     chargingStationsReassignmentStatusEnumValues:
     - closed
     - completed
+    - in_progress
     - incomplete
     - pending
     chargingTypeEnumValues:
@@ -39785,6 +41690,9 @@ x-shared:
     - PENDING
     - RELEASED
     - PAID
+    routerLogHistoryTypeEnumValues:
+    - info
+    - error
     solutionTypeEnumValues:
     - bmvi
     - business_solution
@@ -39872,9 +41780,10 @@ x-shared:
       example: 2023-04-01T12:00:00+02
     evseIdDefinition:
       description: "EVSE-ID (in the form of \"{Country Code}{CPO ID}E{Alpha Numeric\
-        \ Charge Point ID}\")"
+        \ Charge Point ID}\", optionally followed by \"*\" and a suffix of 1-2 digits,\
+        \ e.g. \"DE*WLN*E1001004*1\")"
       type: string
-      pattern: "^[A-Z]{2}\\*?[0-9A-Z]{3}\\*?E[0-9A-Z]{1,30}$"
+      pattern: "^[A-Z]{2}\\*?[0-9A-Z]{3}\\*?E[0-9A-Z]{1,30}(\\*[0-9]{1,2})?$"
       example: DE*WLN*E0123456789
     getConfigurationKeyDefinition:
       type: array
@@ -39976,6 +41885,17 @@ x-shared:
       - Full
       description: This contains the type of update (full or differential) of this
         request.
+    tariffFallbackModeDefinition:
+      type: string
+      enum:
+      - own_only
+      - own_with_cpo_fallback
+      - cpo_only
+      description: |
+        Which tariffs of this tariff type apply to the organization.
+        * `own_only`: Only the organization's own tariffs.
+        * `own_with_cpo_fallback`: The organization's own tariffs, followed by the tariffs of its CPO (parent tenant) as fallback.
+        * `cpo_only`: Only the tariffs of its CPO (parent tenant). The organization cannot create own tariffs of this type.
     tenantIdDefinitioRaw:
       type: string
     tenantIdDefinition:
