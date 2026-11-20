@@ -16,7 +16,7 @@ jobs:
       - name: Install Redocly CLI
         run: npm install -g @redocly/cli@latest
       - name: Redocly build docs
-        run: redocly build-docs openapi.yml -o dist/index.html --theme.openapi.disableSearch --theme.openapi.requiredPropsFirst --theme.openapi.sortPropsAlphabetically
+        run: redocly build-docs openapi.yml -o dist/index.html --openapi.sortRequiredPropsFirst
       - name: Deploy to GitHub pages
         uses: peaceiris/actions-gh-pages@v3
         with:
